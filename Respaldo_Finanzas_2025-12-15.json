@@ -1,0 +1,110 @@
+[
+  {
+    "id": 1765776096862,
+    "date": "2025-12-15",
+    "type": "ingreso",
+    "account": "Pichincha",
+    "amount": 81.52,
+    "desc": "deposito",
+    "person": null
+  },
+  {
+    "id": 1765775988364,
+    "date": "2025-12-15",
+    "type": "ingreso",
+    "account": "Produbanco",
+    "amount": 280.13,
+    "desc": "deposito",
+    "person": null
+  },
+  {
+    "id": 1765775859799,
+    "date": "2025-12-15",
+    "type": "ingreso",
+    "account": "Efectivo",
+    "amount": 35,
+    "desc": "deposito",
+    "person": null
+  },
+  {
+    "id": 1765775768364,
+    "date": "2025-12-15",
+    "type": "ingreso",
+    "account": "Binance",
+    "amount": 54.01,
+    "desc": "deposito",
+    "person": null
+  },
+  {
+    "id": 1765775706982,
+    "date": "2025-12-15",
+    "type": "ingreso",
+    "account": "UglyCash",
+    "amount": 214.45,
+    "desc": "deposito",
+    "person": null
+  },
+  {
+    "id": 1765771282953,
+    "date": "2025-12-13",
+    "type": "loan_out",
+    "account": "Efectivo",
+    "amount": 10,
+    "desc": "le preste en la mana en efectivo",
+    "person": "papa"
+  },
+  {
+    "id": 1765771081597,
+    "date": "2025-11-23",
+    "type": "loan_out",
+    "account": "Efectivo",
+    "amount": 20,
+    "desc": "me debe de la grafica 4060",
+    "person": "charlxz"
+  },
+  {
+    "id": 1765770945226,
+    "date": "2025-11-16",
+    "type": "loan_out",
+    "account": "UglyCash",
+    "amount": 52.14,
+    "desc": "pago en temu de 41.81 euros",
+    "person": "nahomi"
+  },
+  {
+    "id": 1765770840436,
+    "date": "2025-10-31",
+    "type": "loan_out",
+    "account": "UglyCash",
+    "amount": 151.8,
+    "desc": "concierto twice 122 euros",
+    "person": "nahomi"
+  },
+  {
+    "id": 1765770630448,
+    "date": "2025-11-25",
+    "type": "loan_out",
+    "account": "UglyCash",
+    "amount": 4.48,
+    "desc": "spotify",
+    "person": "nahomi"
+  },
+  {
+    "id": 1765770501239,
+    "date": "2025-10-27",
+    "type": "loan_out",
+    "account": "Pichincha",
+    "amount": 1.14,
+    "desc": "apple plus",
+    "person": "nahomi"
+  },
+  {
+    "id": 1765770097432,
+    "date": "2025-10-14",
+    "type": "loan_payment",
+    "account": "Produbanco",
+    "amount": 20.53,
+    "desc": "me transifirio para pagar spotify y otras cosas",
+    "person": "nahomi"
+  }
+]

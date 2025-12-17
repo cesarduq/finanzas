@@ -54,8 +54,9 @@
     </div>
 
     <!-- TARJETAS -->
+    <!-- Fila 1: Patrimonio Neto (Full Width) -->
     <div class="row g-3 mb-3">
-        <div class="col-md-6 col-xl-3">
+        <div class="col-12">
             <div class="card bg-total text-white h-100 border-0">
                 <div class="card-body position-relative p-4">
                     <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Patrimonio Neto</h6>
@@ -64,12 +65,25 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Fila 2 y 3: Resto de cuentas (4 por fila en XL) -->
+    <div class="row g-3 mb-4">
         <div class="col-md-6 col-xl-3">
             <div class="card bg-pichincha h-100 border-0">
                 <div class="card-body position-relative p-4">
                     <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Banco Pichincha</h6>
                     <h3 class="fw-bold mt-2 mb-0" id="lblPichincha">$0.00</h3>
                     <img src="assets/pichincha.svg" class="card-logo-img" onerror="this.style.display='none'">
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card bg-guayaquil h-100 border-0">
+                <div class="card-body position-relative p-4">
+                    <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Banco Guayaquil</h6>
+                    <h3 class="fw-bold mt-2 mb-0" id="lblGuayaquil">$0.00</h3>
+                    <img src="assets/guayaquil.png" class="card-logo-img" onerror="this.style.display='none'">
                 </div>
             </div>
         </div>
@@ -91,10 +105,16 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="row g-3 mb-4">
-        <div class="col-md-4 col-xl-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="card bg-peigo h-100 border-0">
+                <div class="card-body position-relative p-4">
+                    <h6 class="text-uppercase opacity-75 small fw-bold ls-1">PeiGo</h6>
+                    <h3 class="fw-bold mt-2 mb-0" id="lblPeiGo">$0.00</h3>
+                    <img src="assets/peigo.svg" class="card-logo-img" onerror="this.style.display='none'">
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
             <div class="card bg-ugly h-100 border-0">
                 <div class="card-body position-relative p-4">
                     <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Ugly Cash</h6>
@@ -103,7 +123,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4 col-xl-4">
+        <div class="col-md-6 col-xl-3">
             <div class="card bg-efectivo text-white h-100 border-0">
                 <div class="card-body position-relative p-4">
                     <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Efectivo</h6>
@@ -112,7 +132,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4 col-xl-4">
+        <div class="col-md-6 col-xl-3">
             <div class="card bg-loans text-white h-100 border-0">
                 <div class="card-body position-relative p-4">
                     <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Por Cobrar</h6>
@@ -156,8 +176,10 @@
                             <label class="form-label small fw-bold text-muted" id="lblAccount">Cuenta</label>
                             <select class="form-select filled-input" id="inputAccount">
                                 <option value="Pichincha">Banco Pichincha</option>
+                                <option value="Guayaquil">Banco Guayaquil</option>
                                 <option value="Produbanco">Produbanco</option>
                                 <option value="Binance">Binance</option>
+                                <option value="PeiGo">PeiGo</option>
                                 <option value="UglyCash">Ugly Cash</option>
                                 <option value="Efectivo">Efectivo</option>
                             </select>
@@ -224,8 +246,10 @@
                                 <select id="filterAccount" class="form-select form-select-sm w-auto filled-input" onchange="renderTable()">
                                     <option value="all">Todo</option>
                                     <option value="Pichincha">Pichincha</option>
+                                    <option value="Guayaquil">Banco Guayaquil</option>
                                     <option value="Produbanco">Produbanco</option>
                                     <option value="Binance">Binance</option>
+                                    <option value="PeiGo">PeiGo</option>
                                     <option value="UglyCash">Ugly Cash</option>
                                     <option value="Efectivo">Efectivo</option>
                                 </select>

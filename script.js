@@ -138,7 +138,7 @@ function deleteTransaction(id) {
 }
 
 function calculateBalances() {
-    let bal = { 'Pichincha': 0, 'Produbanco': 0, 'Binance': 0, 'UglyCash': 0, 'Efectivo': 0, 'PorCobrar': 0, 'Total': 0 };
+    let bal = { 'Pichincha': 0, 'Guayaquil': 0, 'Produbanco': 0, 'Binance': 0, 'PeiGo': 0, 'UglyCash': 0, 'Efectivo': 0, 'PorCobrar': 0, 'Total': 0 };
     let debts = {};
     transactions.forEach(t => {
         let val = t.amount;
@@ -155,7 +155,7 @@ function calculateBalances() {
             debts[t.person] = (debts[t.person] || 0) - val;
         }
     });
-    bal['Total'] = bal['Pichincha'] + bal['Produbanco'] + bal['Binance'] + bal['UglyCash'] + bal['Efectivo'] + bal['PorCobrar'];
+    bal['Total'] = bal['Pichincha'] + bal['Guayaquil'] + bal['Produbanco'] + bal['Binance'] + bal['PeiGo'] + bal['UglyCash'] + bal['Efectivo'] + bal['PorCobrar'];
     return { bal, debts };
 }
 
@@ -163,8 +163,10 @@ function renderAll() {
     const { bal, debts } = calculateBalances();
     document.getElementById('lblTotal').innerText = fmt.format(bal['Total']);
     document.getElementById('lblPichincha').innerText = fmt.format(bal['Pichincha']);
+    document.getElementById('lblGuayaquil').innerText = fmt.format(bal['Guayaquil']);
     document.getElementById('lblProdubanco').innerText = fmt.format(bal['Produbanco']);
     document.getElementById('lblBinance').innerText = fmt.format(bal['Binance']);
+    document.getElementById('lblPeiGo').innerText = fmt.format(bal['PeiGo']);
     document.getElementById('lblUglyCash').innerText = fmt.format(bal['UglyCash']);
     document.getElementById('lblEfectivo').innerText = fmt.format(bal['Efectivo']);
     document.getElementById('lblPorCobrar').innerText = fmt.format(bal['PorCobrar']);
@@ -235,10 +237,10 @@ function renderChart(bal) {
     const textColor = isDark ? '#cbd5e1' : '#475569'; 
 
     const data = {
-        labels: ['Pichincha', 'Produbanco', 'Binance', 'Ugly', 'Efectivo', 'Por Cobrar'],
+        labels: ['Pichincha', 'Guayaquil', 'Produbanco', 'Binance', 'PeiGo', 'Ugly', 'Efectivo', 'Por Cobrar'],
         datasets: [{
-            data: [bal['Pichincha'], bal['Produbanco'], bal['Binance'], bal['UglyCash'], bal['Efectivo'], bal['PorCobrar']].map(v => Math.max(0,v)),
-            backgroundColor: ['#FFDD00', '#1e3a8a', '#F3BA2F', '#1a1a1a', '#4b5563', '#8E54E9'],
+            data: [bal['Pichincha'], bal['Guayaquil'], bal['Produbanco'], bal['Binance'], bal['PeiGo'], bal['UglyCash'], bal['Efectivo'], bal['PorCobrar']].map(v => Math.max(0,v)),
+            backgroundColor: ['#FFDD00', '#E3007E', '#1e3a8a', '#F3BA2F', '#00D1D1', '#1a1a1a', '#4b5563', '#8E54E9'],
             borderWidth: 0, hoverOffset: 4
         }]
     };
