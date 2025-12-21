@@ -1,48 +1,78 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard Financiero</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-    
-    <link rel="icon" type="image/png" href="/assets/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
-<link rel="shortcut icon" href="/assets/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="Finanzas" />
-<link rel="manifest" href="/assets/site.webmanifest" />
-</head>
-<body>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
 
-<!-- Usamos un contenedor con width limitado para dar buenos márgenes a los lados -->
-<div class="main-wrapper my-4">
-    
-    <!-- HEADER -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="styles.css" />
+
+    <link
+      rel="icon"
+      type="image/png"
+      href="/assets/favicon-96x96.png"
+      sizes="96x96"
+    />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+    <link rel="shortcut icon" href="/assets/favicon.ico" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/assets/apple-touch-icon.png"
+    />
+    <meta name="apple-mobile-web-app-title" content="Finanzas" />
+    <link rel="manifest" href="/assets/site.webmanifest" />
+  </head>
+  <body>
+   
+
+    <!-- Usamos un contenedor con width limitado para dar buenos márgenes a los lados -->
+    <div class="main-wrapper my-4">
+      <!-- HEADER -->
     <div class="header-bar d-flex justify-content-between align-items-center mb-4 p-3 rounded-4 shadow-sm">
         <div class="d-flex align-items-center">
             <div class="logo-icon me-3"><i class="fa-solid fa-wallet"></i></div>
             <div>
                 <h4 class="fw-bold m-0">Mi Dashboard</h4>
-                <small class="text-muted opacity-75">Resumen Financiero</small>
+                <!-- Indicador de estado -->
+                <small id="statusIndicator" class="text-muted" style="font-size: 0.7rem;">
+                    <i class="fa-solid fa-hard-drive"></i> Modo Local (Invitado)
+                </small>
             </div>
         </div>
         
         <div class="d-flex align-items-center gap-2">
-            <!-- Toggle Mode -->
-            <button class="btn btn-theme-toggle rounded-circle" onclick="toggleDarkMode()" title="Cambiar Tema">
+            <button class="btn btn-theme-toggle rounded-circle" onclick="toggleDarkMode()" title="Tema">
                 <i class="fa-solid fa-moon" id="iconMode"></i>
             </button>
-            <!-- Settings Menu -->
-            <div class="dropdown">
+            
+            <!-- Botón Login / Logout Dinámico -->
+            <div id="authButtons">
+                <button class="btn btn-primary btn-sm rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalAuth">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Sincronizar
+                </button>
+            </div>
+            
+            <!-- Menú Config -->
+            <div class="dropdown ms-2">
                 <button class="btn btn-settings rounded-circle" type="button" data-bs-toggle="dropdown">
                     <i class="fa-solid fa-gear"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2">
-                    <li><h6 class="dropdown-header small text-uppercase">Respaldo (Manual)</h6></li>
+                    <li><h6 class="dropdown-header small text-uppercase">Opciones</h6></li>
                     <li><button class="dropdown-item rounded" onclick="exportData()"><i class="fa-solid fa-download me-2"></i>Descargar JSON</button></li>
                     <li><button class="dropdown-item rounded" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-upload me-2"></i>Cargar JSON</button></li>
                     <li><hr class="dropdown-divider"></li>
@@ -53,286 +83,494 @@
         </div>
     </div>
 
-    <!-- TARJETAS -->
-    <!-- Fila 1: Patrimonio Neto (Full Width) -->
-    <div class="row g-3 mb-3">
+      <!-- TARJETAS -->
+      <!-- Fila 1: Patrimonio Neto (Full Width) -->
+      <div class="row g-3 mb-3">
         <div class="col-12">
-            <div class="card bg-total text-white h-100 border-0">
-                <div class="card-body position-relative p-4">
-                    <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Patrimonio Neto</h6>
-                    <h2 class="fw-bold mt-2 mb-0" id="lblTotal">$0.00</h2>
-                    <i class="fa-solid fa-scale-balanced card-icon-bg"></i>
-                </div>
+          <div class="card bg-total text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Patrimonio Neto
+              </h6>
+              <h2 class="fw-bold mt-2 mb-0" id="lblTotal">$0.00</h2>
+              <i class="fa-solid fa-scale-balanced card-icon-bg"></i>
             </div>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <!-- Fila 2 y 3: Resto de cuentas (4 por fila en XL) -->
-    <div class="row g-3 mb-4">
+      <!-- Fila 2 y 3: Resto de cuentas (4 por fila en XL) -->
+      <div class="row g-3 mb-4">
         <div class="col-md-6 col-xl-3">
-            <div class="card bg-pichincha h-100 border-0">
-                <div class="card-body position-relative p-4">
-                    <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Banco Pichincha</h6>
-                    <h3 class="fw-bold mt-2 mb-0" id="lblPichincha">$0.00</h3>
-                    <img src="assets/pichincha.svg" class="card-logo-img" onerror="this.style.display='none'">
-                </div>
+          <div class="card bg-pichincha h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Banco Pichincha
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblPichincha">$0.00</h3>
+              <img
+                src="assets/pichincha.svg"
+                class="card-logo-img"
+                onerror="this.style.display='none'"
+              />
             </div>
+          </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card bg-guayaquil h-100 border-0">
-                <div class="card-body position-relative p-4">
-                    <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Banco Guayaquil</h6>
-                    <h3 class="fw-bold mt-2 mb-0" id="lblGuayaquil">$0.00</h3>
-                    <img src="assets/guayaquil.png" class="card-logo-img" onerror="this.style.display='none'">
-                </div>
+          <div class="card bg-guayaquil h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Banco Guayaquil
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblGuayaquil">$0.00</h3>
+              <img
+                src="assets/guayaquil.png"
+                class="card-logo-img"
+                onerror="this.style.display='none'"
+              />
             </div>
+          </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card bg-produbanco text-white h-100 border-0">
-                <div class="card-body position-relative p-4">
-                    <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Produbanco</h6>
-                    <h3 class="fw-bold mt-2 mb-0" id="lblProdubanco">$0.00</h3>
-                    <img src="assets/produbanco.svg" class="card-logo-img" onerror="this.style.display='none'">
-                </div>
+          <div class="card bg-produbanco text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Produbanco
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblProdubanco">$0.00</h3>
+              <img
+                src="assets/produbanco.svg"
+                class="card-logo-img"
+                onerror="this.style.display='none'"
+              />
             </div>
+          </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card bg-binance h-100 border-0">
-                <div class="card-body position-relative p-4">
-                    <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Binance</h6>
-                    <h3 class="fw-bold mt-2 mb-0" id="lblBinance">$0.00</h3>
-                    <img src="assets/binance.svg" class="card-logo-img" onerror="this.style.display='none'">
-                </div>
+          <div class="card bg-binance h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Binance
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblBinance">$0.00</h3>
+              <img
+                src="assets/binance.svg"
+                class="card-logo-img"
+                onerror="this.style.display='none'"
+              />
             </div>
+          </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card bg-peigo h-100 border-0">
-                <div class="card-body position-relative p-4">
-                    <h6 class="text-uppercase opacity-75 small fw-bold ls-1">PeiGo</h6>
-                    <h3 class="fw-bold mt-2 mb-0" id="lblPeiGo">$0.00</h3>
-                    <img src="assets/peigo.svg" class="card-logo-img" onerror="this.style.display='none'">
-                </div>
+          <div class="card bg-peigo h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                PeiGo
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblPeiGo">$0.00</h3>
+              <img
+                src="assets/peigo.svg"
+                class="card-logo-img"
+                onerror="this.style.display='none'"
+              />
             </div>
+          </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card bg-ugly h-100 border-0">
-                <div class="card-body position-relative p-4">
-                    <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Ugly Cash</h6>
-                    <h3 class="fw-bold mt-2 mb-0" id="lblUglyCash">$0.00</h3>
-                    <img src="assets/ugly.svg" class="card-logo-img" onerror="this.style.display='none'">
-                </div>
+          <div class="card bg-ugly h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Ugly Cash
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblUglyCash">$0.00</h3>
+              <img
+                src="assets/ugly.svg"
+                class="card-logo-img"
+                onerror="this.style.display='none'"
+              />
             </div>
+          </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card bg-efectivo text-white h-100 border-0">
-                <div class="card-body position-relative p-4">
-                    <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Efectivo</h6>
-                    <h3 class="fw-bold mt-2 mb-0" id="lblEfectivo">$0.00</h3>
-                    <img src="assets/efectivo.png" class="card-logo-img" onerror="this.style.display='none'">
-                </div>
+          <div class="card bg-efectivo text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Efectivo
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblEfectivo">$0.00</h3>
+              <img
+                src="assets/efectivo.png"
+                class="card-logo-img"
+                onerror="this.style.display='none'"
+              />
             </div>
+          </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card bg-loans text-white h-100 border-0">
-                <div class="card-body position-relative p-4">
-                    <h6 class="text-uppercase opacity-75 small fw-bold ls-1">Por Cobrar</h6>
-                    <h3 class="fw-bold mt-2 mb-0" id="lblPorCobrar">$0.00</h3>
-                    <i class="fa-solid fa-hand-holding-dollar card-icon-bg"></i>
-                </div>
+          <div class="card bg-loans text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Por Cobrar
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblPorCobrar">$0.00</h3>
+              <i class="fa-solid fa-hand-holding-dollar card-icon-bg"></i>
             </div>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <!-- MAIN CONTENT -->
-    <div class="row g-4">
-        
+      <!-- MAIN CONTENT -->
+      <div class="row g-4">
         <!-- COLUMNA IZQUIERDA (Formulario + Gráfico) -->
         <div class="col-lg-4 col-xl-3">
-            
-            <!-- 1. Formulario -->
-            <div class="card card-custom mb-4 border-0">
-                <div class="card-header bg-transparent fw-bold py-3 border-0 d-flex align-items-center">
-                    <span class="icon-square me-2"><i class="fa-solid fa-plus"></i></span> Nueva Transacción
-                </div>
-                <div class="card-body">
-                    <form id="formTransaction">
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Fecha</label>
-                            <input type="date" class="form-control filled-input" id="inputDate" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Acción</label>
-                            <select class="form-select filled-input" id="inputType" onchange="toggleFormFields()" required>
-                                <option value="ingreso">🟢 Ingreso / Depósito</option>
-                                <option value="gasto">🔴 Gasto / Pago / Retiro</option>
-                                <option value="trade_profit">📈 Trading: Ganancia</option>
-                                <option value="trade_loss">📉 Trading: Pérdida</option>
-                                <option value="loan_out">💸 Prestar (Salida)</option>
-                                <option value="loan_payment">🤝 Cobrar (Entrada)</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3" id="groupAccount">
-                            <label class="form-label small fw-bold text-muted" id="lblAccount">Cuenta</label>
-                            <select class="form-select filled-input" id="inputAccount">
-                                <option value="Pichincha">Banco Pichincha</option>
-                                <option value="Guayaquil">Banco Guayaquil</option>
-                                <option value="Produbanco">Produbanco</option>
-                                <option value="Binance">Binance</option>
-                                <option value="PeiGo">PeiGo</option>
-                                <option value="UglyCash">Ugly Cash</option>
-                                <option value="Efectivo">Efectivo</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3 d-none" id="groupPerson">
-                            <label class="form-label small fw-bold text-muted">Persona</label>
-                            <input type="text" class="form-control filled-input" id="inputPerson" placeholder="Nombre (ej. Jeanpier)">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Monto ($)</label>
-                            <input type="number" step="0.01" class="form-control fw-bold fs-5 filled-input" id="inputAmount" placeholder="0.00" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Descripción</label>
-                            <input type="text" class="form-control filled-input" id="inputDesc" placeholder="Detalle...">
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2 btn-gradient-primary border-0 rounded-3 shadow-sm">
-                            Guardar
-                        </button>
-                    </form>
-                </div>
+          <!-- 1. Formulario -->
+          <div class="card card-custom mb-4 border-0">
+            <div
+              class="card-header bg-transparent fw-bold py-3 border-0 d-flex align-items-center"
+            >
+              <span class="icon-square me-2"
+                ><i class="fa-solid fa-plus"></i
+              ></span>
+              Nueva Transacción
             </div>
-
-            <!-- 2. Gráfico (Ahora debajo del formulario) -->
-            <div class="card card-custom border-0">
-                <div class="card-body">
-                    <h6 class="text-center small text-muted mb-3 fw-bold text-uppercase">Distribución de Activos</h6>
-                    <div style="height: 220px; display: flex; align-items: center; justify-content: center;">
-                        <canvas id="assetsChart"></canvas>
-                    </div>
+            <div class="card-body">
+              <form id="formTransaction">
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted"
+                    >Fecha</label
+                  >
+                  <input
+                    type="date"
+                    class="form-control filled-input"
+                    id="inputDate"
+                    required
+                  />
                 </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted"
+                    >Acción</label
+                  >
+                  <select
+                    class="form-select filled-input"
+                    id="inputType"
+                    onchange="toggleFormFields()"
+                    required
+                  >
+                    <option value="ingreso">🟢 Ingreso / Depósito</option>
+                    <option value="gasto">🔴 Gasto / Pago / Retiro</option>
+                    <option value="transfer">
+                      🔀 Transferencia entre Cuentas
+                    </option>
+                    <!-- NUEVA OPCIÓN -->
+                    <option value="trade_profit">📈 Trading: Ganancia</option>
+                    <option value="trade_loss">📉 Trading: Pérdida</option>
+                    <option value="loan_out">💸 Prestar (Salida)</option>
+                    <option value="loan_payment">🤝 Cobrar (Entrada)</option>
+                  </select>
+                </div>
+
+                <!-- CUENTA ORIGEN (Desde donde sale) -->
+                <div class="mb-3" id="groupAccount">
+                  <label
+                    class="form-label small fw-bold text-muted"
+                    id="lblAccount"
+                    >Cuenta</label
+                  >
+                  <select class="form-select filled-input" id="inputAccount">
+                    <option value="Pichincha">Banco Pichincha</option>
+                    <option value="Guayaquil">Banco Guayaquil</option>
+                    <option value="Produbanco">Produbanco</option>
+                    <option value="Binance">Binance</option>
+                    <option value="PeiGo">PeiGo</option>
+                    <option value="UglyCash">Ugly Cash</option>
+                    <option value="Efectivo">Efectivo</option>
+                  </select>
+                </div>
+
+                <!-- CUENTA DESTINO (A donde llega) - NUEVO CAMPO -->
+                <div class="mb-3 d-none" id="groupAccountTo">
+                  <label class="form-label small fw-bold text-muted"
+                    >Hacia (Cuenta Destino)</label
+                  >
+                  <select class="form-select filled-input" id="inputAccountTo">
+                    <option value="Pichincha">Banco Pichincha</option>
+                    <option value="Guayaquil">Banco Guayaquil</option>
+                    <option value="Produbanco">Produbanco</option>
+                    <option value="Binance" selected>Binance</option>
+                    <option value="PeiGo">PeiGo</option>
+                    <option value="UglyCash">Ugly Cash</option>
+                    <option value="Efectivo">Efectivo</option>
+                  </select>
+                </div>
+                <div class="mb-3 d-none" id="groupPerson">
+                  <label class="form-label small fw-bold text-muted"
+                    >Persona</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control filled-input"
+                    id="inputPerson"
+                    placeholder="Nombre (ej. Jeanpier)"
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted"
+                    >Monto ($)</label
+                  >
+                  <input
+                    type="number"
+                    step="0.01"
+                    class="form-control fw-bold fs-5 filled-input"
+                    id="inputAmount"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted"
+                    >Descripción</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control filled-input"
+                    id="inputDesc"
+                    placeholder="Detalle..."
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  class="btn btn-primary w-100 fw-bold py-2 btn-gradient-primary border-0 rounded-3 shadow-sm"
+                >
+                  Guardar
+                </button>
+              </form>
             </div>
+          </div>
+
+          <!-- 2. Gráfico (Ahora debajo del formulario) -->
+          <div class="card card-custom border-0">
+            <div class="card-body">
+              <h6
+                class="text-center small text-muted mb-3 fw-bold text-uppercase"
+              >
+                Distribución de Activos
+              </h6>
+              <div
+                style="
+                  height: 220px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                "
+              >
+                <canvas id="assetsChart"></canvas>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- COLUMNA DERECHA (Tablas ocupando toda la altura) -->
         <div class="col-lg-8 col-xl-9">
-            <div class="card card-custom border-0 h-100">
-                <div class="card-header bg-transparent border-bottom p-3">
-                    <ul class="nav nav-pills card-header-pills" id="mainTab" role="tablist">
-                        <li class="nav-item">
-                            <button class="nav-link active fw-bold" data-bs-toggle="pill" data-bs-target="#tab-historial">
-                                <i class="fa-solid fa-list-check me-2"></i>Historial
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-prestamos">
-                                <i class="fa-solid fa-user-group me-2"></i>Deudas Activas
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-                
-                <div class="card-body p-0">
-                    <div class="tab-content h-100">
-                        
-                        <!-- TABLA HISTORIAL -->
-                        <div class="tab-pane fade show active h-100" id="tab-historial">
-                            <div class="p-3 border-bottom d-flex align-items-center">
-                                <span class="me-2 fw-bold text-muted small"><i class="fa-solid fa-filter me-1"></i>Filtrar:</span>
-                                <select id="filterAccount" class="form-select form-select-sm w-auto filled-input" onchange="renderTable()">
-                                    <option value="all">Todo</option>
-                                    <option value="Pichincha">Pichincha</option>
-                                    <option value="Guayaquil">Banco Guayaquil</option>
-                                    <option value="Produbanco">Produbanco</option>
-                                    <option value="Binance">Binance</option>
-                                    <option value="PeiGo">PeiGo</option>
-                                    <option value="UglyCash">Ugly Cash</option>
-                                    <option value="Efectivo">Efectivo</option>
-                                </select>
-                            </div>
-                            
-                            <div class="table-responsive h-100">
-                                <table class="table table-hover align-middle mb-0 custom-table">
-                                    <thead>
-                                        <tr>
-                                            <th class="ps-4">Fecha</th>
-                                            <th>Cuenta</th>
-                                            <th>Detalle</th>
-                                            <th>Tipo</th>
-                                            <th class="text-end">Monto</th>
-                                            <th class="text-center pe-4">Acción</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="transactionTableBody"></tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- TABLA DEUDORES -->
-                        <div class="tab-pane fade p-4" id="tab-prestamos">
-                            <div class="row g-3" id="debtCardsContainer"></div>
-                            <div id="noDebtsMsg" class="text-center text-muted py-5" style="display:none;">
-                                <div class="mb-3"><i class="fa-solid fa-thumbs-up fa-3x opacity-25"></i></div>
-                                <p>¡Todo en orden! Nadie te debe dinero actualmente.</p>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
+          <div class="card card-custom border-0 h-100">
+            <div class="card-header bg-transparent border-bottom p-3">
+              <ul
+                class="nav nav-pills card-header-pills"
+                id="mainTab"
+                role="tablist"
+              >
+                <li class="nav-item">
+                  <button
+                    class="nav-link active fw-bold"
+                    data-bs-toggle="pill"
+                    data-bs-target="#tab-historial"
+                  >
+                    <i class="fa-solid fa-list-check me-2"></i>Historial
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button
+                    class="nav-link fw-bold"
+                    data-bs-toggle="pill"
+                    data-bs-target="#tab-prestamos"
+                  >
+                    <i class="fa-solid fa-user-group me-2"></i>Deudas Activas
+                  </button>
+                </li>
+              </ul>
             </div>
+
+            <div class="card-body p-0">
+              <div class="tab-content h-100">
+                <!-- TABLA HISTORIAL -->
+                <div class="tab-pane fade show active h-100" id="tab-historial">
+                  <div class="p-3 border-bottom d-flex align-items-center">
+                    <span class="me-2 fw-bold text-muted small"
+                      ><i class="fa-solid fa-filter me-1"></i>Filtrar:</span
+                    >
+                    <select
+                      id="filterAccount"
+                      class="form-select form-select-sm w-auto filled-input"
+                      onchange="currentPage=1; renderTable()"
+                    >
+                      <option value="all">Todo</option>
+                      <option value="Pichincha">Pichincha</option>
+                      <option value="Guayaquil">Banco Guayaquil</option>
+                      <option value="Produbanco">Produbanco</option>
+                      <option value="Binance">Binance</option>
+                      <option value="PeiGo">PeiGo</option>
+                      <option value="UglyCash">Ugly Cash</option>
+                      <option value="Efectivo">Efectivo</option>
+                    </select>
+                  </div>
+
+                  <div class="table-responsive h-100">
+                    <table
+                      class="table table-hover align-middle mb-0 custom-table"
+                    >
+                      <thead>
+                        <tr>
+                          <th class="ps-4">Fecha</th>
+                          <th>Cuenta</th>
+                          <th>Detalle</th>
+                          <th>Tipo</th>
+                          <th class="text-end">Monto</th>
+                          <th class="text-center pe-4">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody id="transactionTableBody"></tbody>
+                    </table>
+
+                    <!-- CONTROLES DE PAGINACIÓN -->
+<div id="paginationControls" class="d-flex justify-content-between align-items-center p-3 border-top" style="display: none !important;">
+                        <button class="btn btn-sm btn-outline-secondary" id="btnPrev" onclick="prevPage()">
+                            <i class="fa-solid fa-chevron-left"></i> Anterior
+                        </button>
+                        
+                        <span class="small fw-bold text-muted" id="pageIndicator">Página 1</span>
+                        
+                        <button class="btn btn-sm btn-outline-secondary" id="btnNext" onclick="nextPage()">
+                            Siguiente <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TABLA DEUDORES -->
+                <div class="tab-pane fade p-4" id="tab-prestamos">
+                  <div class="row g-3" id="debtCardsContainer"></div>
+                  <div
+                    id="noDebtsMsg"
+                    class="text-center text-muted py-5"
+                    style="display: none"
+                  >
+                    <div class="mb-3">
+                      <i class="fa-solid fa-thumbs-up fa-3x opacity-25"></i>
+                    </div>
+                    <p>¡Todo en orden! Nadie te debe dinero actualmente.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-    </div>
-    <!-- FOOTER DE CRÉDITOS -->
-    <footer class="main-footer mt-5">
+      </div>
+      <!-- FOOTER DE CRÉDITOS -->
+      <footer class="main-footer mt-5">
         <p class="mb-1">&copy; <span id="year"></span> Dashboard Financiero.</p>
         <p class="mb-0">
-            Desarrollado por 
-            <a href="https://www.linkedin.com/in/cesar-duque/" target="_blank">Cesar Duque</a>
+          Desarrollado por
+          <a href="https://www.linkedin.com/in/cesar-duque/" target="_blank"
+            >Cesar Duque</a
+          >
         </p>
-        <small class="opacity-50" style="font-size: 0.7rem;">Tus datos se guardan localmente en tu dispositivo.</small>
-    </footer>
-</div>
+        <small class="opacity-50" style="font-size: 0.7rem"
+          >Tus datos se guardan localmente en tu dispositivo.</small
+        >
+      </footer>
+    </div>
 
-<!-- Modal Historial de Persona -->
-<div class="modal fade" id="modalPersonHistory" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <!-- Modal Historial de Persona -->
+    <div class="modal fade" id="modalPersonHistory" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content card-custom border-0 shadow-lg">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" id="modalPersonTitle">Historial</h5>
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold" id="modalPersonTitle">Historial</h5>
+            <button
+              type="button"
+              class="btn-close btn-close-custom"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body p-3">
+            <div class="table-responsive rounded-3 overflow-hidden border">
+              <table class="table table-striped mb-0 custom-table">
+                <thead class="bg-light">
+                  <tr>
+                    <th class="ps-3">Fecha</th>
+                    <th>Movimiento</th>
+                    <th>Nota</th>
+                    <th class="text-end pe-3">Monto</th>
+                  </tr>
+                </thead>
+                <tbody id="personHistoryBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div
+            class="modal-footer justify-content-between border-0 pt-0 pb-3 px-3"
+          >
+            <span class="text-muted small">Saldo total pendiente:</span>
+            <span class="fw-bold fs-4 text-primary" id="modalPersonBalance"
+              >$0.00</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+<!-- MODAL DE LOGIN / REGISTRO -->
+<div class="modal fade" id="modalAuth" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content card-custom border-0 shadow-lg">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Guardar en la Nube</h5>
                 <button type="button" class="btn-close btn-close-custom" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-3">
-                <div class="table-responsive rounded-3 overflow-hidden border">
-                    <table class="table table-striped mb-0 custom-table">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-3">Fecha</th>
-                                <th>Movimiento</th>
-                                <th>Nota</th>
-                                <th class="text-end pe-3">Monto</th>
-                            </tr>
-                        </thead>
-                        <tbody id="personHistoryBody"></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer justify-content-between border-0 pt-0 pb-3 px-3">
-                <span class="text-muted small">Saldo total pendiente:</span>
-                <span class="fw-bold fs-4 text-primary" id="modalPersonBalance">$0.00</span>
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3 text-primary"><i class="fa-solid fa-cloud fa-3x"></i></div>
+                <p class="text-muted small mb-4">
+                    Inicia sesión para respaldar tus datos y usarlos en tu celular o laptop. 
+                    <br><b>Si tienes datos locales, se subirán a tu cuenta.</b>
+                </p>
+                
+                <form id="authForm">
+                    <div class="mb-3">
+                        <input type="email" id="authEmail" class="form-control filled-input" placeholder="Correo electrónico" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="password" id="authPass" class="form-control filled-input" placeholder="Contraseña (mín. 6 letras)" required>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary fw-bold">Iniciar Sesión</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="registerUser()">Crear Cuenta Nueva</button>
+                    </div>
+                </form>
+                <p class="mt-3 small text-danger fw-bold" id="authError" style="display:none;"></p>
             </div>
         </div>
     </div>
 </div>
 
-
-
+    <!-- SCRIPTS -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="script.js"></script>
-</body>
+  </body>
 </html>

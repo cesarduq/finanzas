@@ -1,0 +1,236 @@
+[
+  {
+    "id": 1766265275608,
+    "date": "2025-12-20",
+    "type": "trade_loss",
+    "account": "Binance",
+    "amount": 4.19,
+    "desc": "btcusdc",
+    "person": null
+  },
+  {
+    "id": 1766264987247,
+    "date": "2025-12-20",
+    "type": "ingreso",
+    "account": "Guayaquil",
+    "amount": 18.85,
+    "desc": "deposito desde peigo",
+    "person": null
+  },
+  {
+    "id": 1766264964195,
+    "date": "2025-12-20",
+    "type": "gasto",
+    "account": "PeiGo",
+    "amount": 18.85,
+    "desc": "transferencia a guayaquil",
+    "person": null
+  },
+  {
+    "id": 1766262352292,
+    "date": "2025-12-20",
+    "type": "gasto",
+    "account": "Pichincha",
+    "amount": 2.5,
+    "desc": "sanduche y cheescake poli",
+    "person": null
+  },
+  {
+    "id": 1766262195102,
+    "date": "2025-12-20",
+    "type": "gasto",
+    "account": "PeiGo",
+    "amount": 3.35,
+    "desc": "pedidos ya kfc",
+    "person": null
+  },
+  {
+    "id": 1766262137294,
+    "date": "2025-12-20",
+    "type": "ingreso",
+    "account": "PeiGo",
+    "amount": 20,
+    "desc": "pago tesis de byron",
+    "person": null
+  },
+  {
+    "id": 1766020638419,
+    "date": "2025-12-18",
+    "type": "loan_payment",
+    "account": "Efectivo",
+    "amount": 10,
+    "desc": "de lo que le preste",
+    "person": "papa"
+  },
+  {
+    "id": 1766016161297,
+    "date": "2025-12-17",
+    "type": "ingreso",
+    "account": "Efectivo",
+    "amount": 10,
+    "desc": "me pago mi ma de una deuda",
+    "person": null
+  },
+  {
+    "id": 1766014652290,
+    "date": "2025-12-17",
+    "type": "gasto",
+    "account": "PeiGo",
+    "amount": 4.8,
+    "desc": "comida pedidos ya",
+    "person": null
+  },
+  {
+    "id": 1766014592073,
+    "date": "2025-12-17",
+    "type": "gasto",
+    "account": "Pichincha",
+    "amount": 7,
+    "desc": "pague a ronny",
+    "person": null
+  },
+  {
+    "id": 1766014578671,
+    "date": "2025-12-17",
+    "type": "ingreso",
+    "account": "PeiGo",
+    "amount": 7,
+    "desc": "ronny me transfirio",
+    "person": null
+  },
+  {
+    "id": 1765960652872,
+    "date": "2025-12-17",
+    "type": "trade_profit",
+    "account": "Binance",
+    "amount": 1.55,
+    "desc": "short de btc",
+    "person": null
+  },
+  {
+    "id": 1765909932714,
+    "date": "2025-12-16",
+    "type": "gasto",
+    "account": "Produbanco",
+    "amount": 4,
+    "desc": "padidos ya kdc",
+    "person": null
+  },
+  {
+    "id": 1765831613680,
+    "date": "2025-12-15",
+    "type": "gasto",
+    "account": "Produbanco",
+    "amount": 4.23,
+    "desc": "pedidos ya cajun",
+    "person": null
+  },
+  {
+    "id": 1765776096862,
+    "date": "2025-12-15",
+    "type": "ingreso",
+    "account": "Pichincha",
+    "amount": 81.52,
+    "desc": "deposito",
+    "person": null
+  },
+  {
+    "id": 1765775988364,
+    "date": "2025-12-15",
+    "type": "ingreso",
+    "account": "Produbanco",
+    "amount": 280.13,
+    "desc": "deposito",
+    "person": null
+  },
+  {
+    "id": 1765775859799,
+    "date": "2025-12-15",
+    "type": "ingreso",
+    "account": "Efectivo",
+    "amount": 35,
+    "desc": "deposito",
+    "person": null
+  },
+  {
+    "id": 1765775768364,
+    "date": "2025-12-15",
+    "type": "ingreso",
+    "account": "Binance",
+    "amount": 54.01,
+    "desc": "deposito",
+    "person": null
+  },
+  {
+    "id": 1765775706982,
+    "date": "2025-12-15",
+    "type": "ingreso",
+    "account": "UglyCash",
+    "amount": 214.45,
+    "desc": "deposito",
+    "person": null
+  },
+  {
+    "id": 1765771282953,
+    "date": "2025-12-13",
+    "type": "loan_out",
+    "account": "Efectivo",
+    "amount": 10,
+    "desc": "le preste en la mana en efectivo",
+    "person": "papa"
+  },
+  {
+    "id": 1765771081597,
+    "date": "2025-11-23",
+    "type": "loan_out",
+    "account": "Efectivo",
+    "amount": 20,
+    "desc": "me debe de la grafica 4060",
+    "person": "charlxz"
+  },
+  {
+    "id": 1765770945226,
+    "date": "2025-11-16",
+    "type": "loan_out",
+    "account": "UglyCash",
+    "amount": 52.14,
+    "desc": "pago en temu de 41.81 euros",
+    "person": "nahomi"
+  },
+  {
+    "id": 1765770840436,
+    "date": "2025-10-31",
+    "type": "loan_out",
+    "account": "UglyCash",
+    "amount": 151.8,
+    "desc": "concierto twice 122 euros",
+    "person": "nahomi"
+  },
+  {
+    "id": 1765770630448,
+    "date": "2025-11-25",
+    "type": "loan_out",
+    "account": "UglyCash",
+    "amount": 4.48,
+    "desc": "spotify",
+    "person": "nahomi"
+  },
+  {
+    "id": 1765770501239,
+    "date": "2025-10-27",
+    "type": "loan_out",
+    "account": "Pichincha",
+    "amount": 1.14,
+    "desc": "apple plus",
+    "person": "nahomi"
+  },
+  {
+    "id": 1765770097432,
+    "date": "2025-10-14",
+    "type": "loan_payment",
+    "account": "Produbanco",
+    "amount": 20.53,
+    "desc": "me transifirio para pagar spotify y otras cosas",
+    "person": "nahomi"
+  }
+]
