@@ -22,6 +22,7 @@ let transactions = [];
 let assetsChart = null;
 let currentUser = null;
 const STORAGE_KEY = 'finanzasV7'; // Clave para LocalStorage
+const LAST_FORM_KEY = 'finanzasLastForm'; // Clave para guardar último banco y acción
 
 // --- PAGINACIÓN ---
 let currentPage = 1;
@@ -42,7 +43,10 @@ function initApp() {
     checkTheme();
     toggleFormFields();
     
-    // 3. Cargar datos locales primero (Modo Invitado)
+    // 3. Recuperar último banco y acción utilizados
+    restoreLastFormState();
+    
+    // 4. Cargar datos locales primero (Modo Invitado)
     loadLocalData();
     renderAll();
 }
@@ -123,6 +127,9 @@ function loadCloudData() {
 function saveData() {
     // Siempre guardamos en local primero
     localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    
+    // Guardar último banco y acción utilizados
+    saveLastFormState();
 
     if (currentUser) {
         // Si hay usuario, enviamos a la nube
@@ -133,6 +140,39 @@ function saveData() {
     }
     
     renderAll();
+}
+
+// --- FUNCIONES PARA GUARDAR/RECUPERAR ESTADO DEL FORMULARIO ---
+function saveLastFormState() {
+    const account = document.getElementById('inputAccount')?.value;
+    const type = document.getElementById('inputType')?.value;
+    
+    if (account && type) {
+        const formState = { account, type };
+        localStorage.setItem(LAST_FORM_KEY, JSON.stringify(formState));
+    }
+}
+
+function restoreLastFormState() {
+    const saved = localStorage.getItem(LAST_FORM_KEY);
+    if (saved) {
+        try {
+            const { account, type } = JSON.parse(saved);
+            
+            const accountSelect = document.getElementById('inputAccount');
+            const typeSelect = document.getElementById('inputType');
+            
+            if (accountSelect && account) {
+                accountSelect.value = account;
+            }
+            if (typeSelect && type) {
+                typeSelect.value = type;
+                toggleFormFields();
+            }
+        } catch (e) {
+            console.error("Error recuperando estado del formulario:", e);
+        }
+    }
 }
 
 // 4. Sincronizar Local -> Nube
@@ -249,9 +289,13 @@ if(form) {
         }
 
         saveData();
-        form.reset();
+        
+        // Resetear solo los campos de entrada, NO el banco y acción
+        document.getElementById('inputAmount').value = '';
+        document.getElementById('inputDesc').value = '';
+        document.getElementById('inputPerson').value = '';
         dateInput.valueAsDate = new Date();
-        toggleFormFields();
+        // NO llamamos a toggleFormFields() para mantener la visibilidad de campos
         
         const Toast = Swal.mixin({toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true});
         Toast.fire({icon: 'success', title: 'Guardado'});
@@ -334,10 +378,11 @@ function checkTheme() {
 function calculateBalances() {
     let bal = { 
         'Pichincha': 0, 
-        'Guayaquil': 0, // Nuevo
+        'DeUna': 0,
+        'Guayaquil': 0,
+        'PeiGo': 0,
         'Produbanco': 0, 
         'Binance': 0, 
-        'PeiGo': 0,     // Nuevo
         'UglyCash': 0, 
         'Efectivo': 0, 
         'PorCobrar': 0, 
@@ -378,6 +423,7 @@ function renderAll() {
     
     if(document.getElementById('lblTotal')) document.getElementById('lblTotal').innerText = fmt.format(bal['Total']);
     if(document.getElementById('lblPichincha')) document.getElementById('lblPichincha').innerText = fmt.format(bal['Pichincha']);
+    if(document.getElementById('lblDeUna')) document.getElementById('lblDeUna').innerText = fmt.format(bal['DeUna']);
     
     // Nuevos Bancos
     if(document.getElementById('lblGuayaquil')) document.getElementById('lblGuayaquil').innerText = fmt.format(bal['Guayaquil']);
@@ -510,24 +556,26 @@ function renderChart(bal) {
     const textColor = isDark ? '#cbd5e1' : '#475569'; 
 
     const data = {
-        labels: ['Pichincha', 'Guayaquil', 'Produbanco', 'Binance', 'PeiGo', 'Ugly', 'Efectivo', 'Por Cobrar'],
+        labels: ['Pichincha', 'De Una', 'Guayaquil', 'PeiGo', 'Produbanco', 'Binance', 'Ugly', 'Efectivo', 'Por Cobrar'],
         datasets: [{
             data: [
                 bal['Pichincha'], 
+                bal['DeUna'],
                 bal['Guayaquil'], 
+                bal['PeiGo'],
                 bal['Produbanco'], 
                 bal['Binance'], 
-                bal['PeiGo'], 
                 bal['UglyCash'], 
                 bal['Efectivo'], 
                 bal['PorCobrar']
             ].map(v => Math.max(0,v)),
             backgroundColor: [
                 '#FFDD00', // Pichincha (Amarillo)
+                '#1E90FF', // De Una (Azul Dodger)
                 '#E3007E', // Guayaquil (Magenta)
+                '#00D1D1', // PeiGo (Cyan/Turquesa)
                 '#141E30', // Produbanco (Azul Oscuro)
                 '#F0B90B', // Binance (Dorado)
-                '#00D1D1', // PeiGo (Cyan/Turquesa)
                 '#1f2937', // Ugly (Gris Oscuro)
                 '#485563', // Efectivo (Gris)
                 '#8E2DE2'  // Por Cobrar (Morado)

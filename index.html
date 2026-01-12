@@ -83,10 +83,10 @@
         </div>
     </div>
 
-      <!-- TARJETAS -->
-      <!-- Fila 1: Patrimonio Neto (Full Width) -->
-      <div class="row g-3 mb-3">
-        <div class="col-12">
+      <!-- TARJETAS: Patrimonio Neto + 9 cuentas (5 por fila) -->
+      <div class="row g-3 mb-4">
+        <!-- Fila 1: Patrimonio Neto + 4 bancos (5 por fila) -->
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
           <div class="card bg-total text-white h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -97,11 +97,8 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Fila 2 y 3: Resto de cuentas (4 por fila en XL) -->
-      <div class="row g-3 mb-4">
-        <div class="col-md-6 col-xl-3">
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
           <div class="card bg-pichincha h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -116,7 +113,24 @@
             </div>
           </div>
         </div>
-        <div class="col-md-6 col-xl-3">
+
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
+          <div class="card bg-deuna h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                DeUna!
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblDeUna">$0.00</h3>
+              <img
+                src="assets/deuna.svg"
+                class="card-logo-img"
+                onerror="this.style.display='none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
           <div class="card bg-guayaquil h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -131,37 +145,8 @@
             </div>
           </div>
         </div>
-        <div class="col-md-6 col-xl-3">
-          <div class="card bg-produbanco text-white h-100 border-0">
-            <div class="card-body position-relative p-4">
-              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
-                Produbanco
-              </h6>
-              <h3 class="fw-bold mt-2 mb-0" id="lblProdubanco">$0.00</h3>
-              <img
-                src="assets/produbanco.svg"
-                class="card-logo-img"
-                onerror="this.style.display='none'"
-              />
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-          <div class="card bg-binance h-100 border-0">
-            <div class="card-body position-relative p-4">
-              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
-                Binance
-              </h6>
-              <h3 class="fw-bold mt-2 mb-0" id="lblBinance">$0.00</h3>
-              <img
-                src="assets/binance.svg"
-                class="card-logo-img"
-                onerror="this.style.display='none'"
-              />
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
+
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
           <div class="card bg-peigo h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -176,7 +161,41 @@
             </div>
           </div>
         </div>
-        <div class="col-md-6 col-xl-3">
+
+        <!-- Fila 2: 5 bancos más -->
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
+          <div class="card bg-produbanco text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Produbanco
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblProdubanco">$0.00</h3>
+              <img
+                src="assets/produbanco.svg"
+                class="card-logo-img"
+                onerror="this.style.display='none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
+          <div class="card bg-binance h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Binance
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblBinance">$0.00</h3>
+              <img
+                src="assets/binance.svg"
+                class="card-logo-img"
+                onerror="this.style.display='none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
           <div class="card bg-ugly h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -191,7 +210,8 @@
             </div>
           </div>
         </div>
-        <div class="col-md-6 col-xl-3">
+
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
           <div class="card bg-efectivo text-white h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -206,7 +226,8 @@
             </div>
           </div>
         </div>
-        <div class="col-md-6 col-xl-3">
+
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
           <div class="card bg-loans text-white h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -264,8 +285,8 @@
                     <!-- NUEVA OPCIÓN -->
                     <option value="trade_profit">📈 Trading: Ganancia</option>
                     <option value="trade_loss">📉 Trading: Pérdida</option>
-                    <option value="loan_out">💸 Prestar (Salida)</option>
-                    <option value="loan_payment">🤝 Cobrar (Entrada)</option>
+                    <option value="loan_out">💸 Prestar / Pagar (Salida)</option>
+                    <option value="loan_payment">🤝 Cobrar / Préstamo (Entrada)</option>
                   </select>
                 </div>
 
@@ -278,10 +299,11 @@
                   >
                   <select class="form-select filled-input" id="inputAccount">
                     <option value="Pichincha">Banco Pichincha</option>
+                    <option value="DeUna">DeUna!</option>
                     <option value="Guayaquil">Banco Guayaquil</option>
+                    <option value="PeiGo">PeiGo</option>
                     <option value="Produbanco">Produbanco</option>
                     <option value="Binance">Binance</option>
-                    <option value="PeiGo">PeiGo</option>
                     <option value="UglyCash">Ugly Cash</option>
                     <option value="Efectivo">Efectivo</option>
                   </select>
@@ -294,10 +316,11 @@
                   >
                   <select class="form-select filled-input" id="inputAccountTo">
                     <option value="Pichincha">Banco Pichincha</option>
+                    <option value="DeUna">DeUna!</option>
                     <option value="Guayaquil">Banco Guayaquil</option>
+                    <option value="PeiGo">PeiGo</option>
                     <option value="Produbanco">Produbanco</option>
                     <option value="Binance" selected>Binance</option>
-                    <option value="PeiGo">PeiGo</option>
                     <option value="UglyCash">Ugly Cash</option>
                     <option value="Efectivo">Efectivo</option>
                   </select>
