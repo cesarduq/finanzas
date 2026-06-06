@@ -21,6 +21,7 @@ const auth = firebase.auth();
 let transactions = [];
 let assetsChart = null;
 let currentUser = null;
+let editingId = null;
 const STORAGE_KEY = "finanzasV7"; // Clave para LocalStorage
 const LAST_FORM_KEY = "finanzasLastForm"; // Clave para guardar último banco y acción
 
@@ -62,6 +63,10 @@ auth.onAuthStateChanged((user) => {
   if (user) {
     // --- USUARIO LOGUEADO ---
     currentUser = user;
+
+    const changePassEl = document.getElementById("menuChangePassword");
+    if (changePassEl) changePassEl.style.display = "block";
+
     if (statusInd)
       statusInd.innerHTML =
         '<i class="fa-solid fa-cloud text-success"></i> Modo Nube (Sincronizado)';
@@ -88,6 +93,10 @@ auth.onAuthStateChanged((user) => {
   } else {
     // --- MODO INVITADO (LOCAL) ---
     currentUser = null;
+
+    const changePassEl = document.getElementById("menuChangePassword");
+    if (changePassEl) changePassEl.style.display = "none";
+
     if (statusInd)
       statusInd.innerHTML =
         '<i class="fa-solid fa-hard-drive"></i> Modo Local (Invitado)';
@@ -314,6 +323,12 @@ if (form) {
     const baseTx = { id: Date.now(), date: date, amount: amount, desc: desc };
 
     if (type === "transfer") {
+      if (editingId !== null) {
+        // Delete the original transaction being edited
+        transactions = transactions.filter(t => t.id !== editingId);
+        editingId = null;
+        document.querySelector('#formTransaction button[type="submit"]').innerHTML = 'Guardar';
+      }
       const txOut = {
         ...baseTx,
         id: Date.now(),
@@ -333,12 +348,21 @@ if (form) {
       transactions.unshift(txIn);
       transactions.unshift(txOut);
     } else {
-      transactions.unshift({
-        ...baseTx,
-        type: type,
-        account: accountFrom,
-        person: person || null,
-      });
+      if (editingId !== null) {
+        const idx = transactions.findIndex(t => t.id === editingId);
+        if (idx !== -1) {
+          transactions[idx] = { ...transactions[idx], date, amount, desc, type, account: accountFrom, person: person || null };
+        }
+        editingId = null;
+        document.querySelector('#formTransaction button[type="submit"]').innerHTML = '<i class="fa-solid fa-save me-2"></i>Guardar';
+      } else {
+        transactions.unshift({
+          ...baseTx,
+          type: type,
+          account: accountFrom,
+          person: person || null,
+        });
+      }
     }
 
     saveData();
@@ -377,7 +401,12 @@ function toggleFormFields() {
   groupAccountTo.classList.add("d-none");
   lblAccount.innerText = "Cuenta";
 
-  if (type === "loan_out" || type === "loan_payment") {
+  if (
+    type === "loan_out" ||
+    type === "loan_payment" ||
+    type === "debt_in" ||
+    type === "debt_payment"
+  ) {
     groupPerson.classList.remove("d-none");
     inputPerson.setAttribute("required", "required");
   } else if (type === "transfer") {
@@ -457,6 +486,7 @@ function calculateBalances() {
     UglyCash: 0,
     Efectivo: 0,
     Airtm: 0,
+    Morse: 0,
     PorCobrar: 0,
     Total: 0,
   };
@@ -475,18 +505,24 @@ function calculateBalances() {
     }
     // Restas
     else if (
-      ["gasto", "trade_loss", "loan_out", "transfer_out"].includes(t.type)
+      ["gasto", "trade_loss", "loan_out", "transfer_out", "debt_payment"].includes(t.type)
     ) {
       if (bal[t.account] !== undefined) bal[t.account] -= val;
     }
 
-    // Deudas
+    // Deudas (Todas interactúan con PorCobrar)
     if (t.type === "loan_out") {
       bal["PorCobrar"] += val;
       debts[t.person] = (debts[t.person] || 0) + val;
     } else if (t.type === "loan_payment") {
       bal["PorCobrar"] -= val;
       debts[t.person] = (debts[t.person] || 0) - val;
+    } else if (t.type === "debt_in") {
+      bal["PorCobrar"] -= val;
+      debts[t.person] = (debts[t.person] || 0) - val;
+    } else if (t.type === "debt_payment") {
+      bal["PorCobrar"] += val;
+      debts[t.person] = (debts[t.person] || 0) + val;
     }
   });
 
@@ -500,6 +536,7 @@ function calculateBalances() {
     bal["UglyCash"] +
     bal["Efectivo"] +
     bal["Airtm"] +
+    bal["Morse"] +
     bal["PorCobrar"];
   return { bal, debts };
 }
@@ -543,6 +580,8 @@ function renderAll() {
     );
   if (document.getElementById("lblAirtm"))
     document.getElementById("lblAirtm").innerText = fmt.format(bal["Airtm"]);
+  if (document.getElementById("lblMorse"))
+    document.getElementById("lblMorse").innerText = fmt.format(bal["Morse"]);
   if (document.getElementById("lblPorCobrar"))
     document.getElementById("lblPorCobrar").innerText = fmt.format(
       bal["PorCobrar"],
@@ -551,6 +590,9 @@ function renderAll() {
   renderTable();
   renderDebtors(debts);
   renderChart(bal);
+  if (document.getElementById("summaryStartDate")) {
+    updateSummary();
+  }
 }
 
 // Renderizar Tabla
@@ -650,6 +692,18 @@ function renderTable() {
         label = `Pago (${t.person})`;
         icon = "fa-hand-holding-dollar";
         break;
+      case "debt_in":
+        color = "text-warning";
+        sign = "-";
+        label = `Asumir Deuda (${t.person})`;
+        icon = "fa-file-invoice-dollar";
+        break;
+      case "debt_payment":
+        color = "text-danger";
+        sign = "-";
+        label = `Pagar Deuda (${t.person})`;
+        icon = "fa-credit-card";
+        break;
     }
 
     const row = `<tr>
@@ -658,7 +712,10 @@ function renderTable() {
             <td><div class="d-flex align-items-center"><i class="fa-solid ${icon} me-2 small text-muted"></i>${t.desc}</div></td>
             <td class="small">${label}</td>
             <td class="text-end fw-bold ${color}">${sign}${fmt.format(t.amount)}</td>
-            <td class="text-center pe-4"><button class="btn btn-sm text-danger border-0" onclick="deleteTransaction(${t.id})"><i class="fa-solid fa-trash-can"></i></button></td>
+            <td class="text-center pe-4">
+              <button class="btn btn-sm text-primary border-0 me-1" onclick="editTransaction(${t.id})"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm text-danger border-0" onclick="deleteTransaction(${t.id})"><i class="fa-solid fa-trash-can"></i></button>
+            </td>
         </tr>`;
     tbody.innerHTML += row;
   });
@@ -685,23 +742,48 @@ function renderTable() {
 function renderDebtors(debts) {
   const container = document.getElementById("debtCardsContainer");
   const msg = document.getElementById("noDebtsMsg");
-  if (!container) return;
+  const datalist = document.getElementById("personList");
+  
+  if (datalist) {
+    datalist.innerHTML = "";
+    Object.keys(debts).forEach((person) => {
+      datalist.innerHTML += `<option value="${person}"></option>`;
+    });
+  }
 
+  if (!container) return;
   container.innerHTML = "";
-  let count = 0;
+  
+  let count = Object.keys(debts).length;
+  
   for (const [person, amount] of Object.entries(debts)) {
-    if (Math.abs(amount) > 0.01) {
-      count++;
-      const card = `<div class="col-md-6 mb-3">
-                <div class="card card-custom debtor-card h-100 p-3 border-0 shadow-sm" style="border-left: 4px solid #8E54E9 !important; cursor:pointer;" onclick="viewPersonHistory('${person}')">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div><h6 class="fw-bold mb-1">${person}</h6><small class="text-muted">Click para ver detalles</small></div>
-                        <h5 class="text-primary fw-bold mb-0">${fmt.format(amount)}</h5>
-                    </div>
-                </div>
-            </div>`;
-      container.innerHTML += card;
+    let colorClass, lbl, borderCol;
+    if (amount > 0.01) {
+      colorClass = "text-success";
+      lbl = "Te debe:";
+      borderCol = "#20cc9c"; // Greenish
+    } else if (amount < -0.01) {
+      colorClass = "text-danger";
+      lbl = "Le debes:";
+      borderCol = "#d33"; // Redish
+    } else {
+      colorClass = "text-muted";
+      lbl = "Saldado:";
+      borderCol = "#9ca3af"; // Gray
     }
+
+    const card = `<div class="col-md-6 mb-3">
+              <div class="card card-custom debtor-card h-100 p-3 border-0 shadow-sm" style="border-left: 4px solid ${borderCol} !important; cursor:pointer;" onclick="viewPersonHistory('${person}')">
+                  <div class="d-flex justify-content-between align-items-center">
+                      <div><h6 class="fw-bold mb-1">${person}</h6><small class="text-muted">Click para ver detalles</small></div>
+                      <div class="text-end">
+                          <small class="text-muted d-block" style="font-size:0.75rem">${lbl}</small>
+                          <h5 class="${colorClass} fw-bold mb-0">${fmt.format(Math.abs(amount))}</h5>
+                      </div>
+                  </div>
+              </div>
+          </div>`;
+    container.innerHTML += card;
   }
   if (msg) msg.style.display = count === 0 ? "block" : "none";
 }
@@ -726,6 +808,7 @@ function renderChart(bal) {
       "Ugly",
       "Efectivo",
       "Airtm",
+      "Morse",
       "Por Cobrar",
     ],
     datasets: [
@@ -740,6 +823,7 @@ function renderChart(bal) {
           bal["UglyCash"],
           bal["Efectivo"],
           bal["Airtm"],
+          bal["Morse"],
           bal["PorCobrar"],
         ].map((v) => Math.max(0, v)),
         backgroundColor: [
@@ -752,6 +836,7 @@ function renderChart(bal) {
           "#1f2937", // Ugly (Gris Oscuro)
           "#485563", // Efectivo (Gris)
           "#00AEEF", // Airtm (Azul/Cyan)
+          "#ff7e5f", // Morse (Naranja)
           "#8E2DE2", // Por Cobrar (Morado)
         ],
         borderWidth: 0,
@@ -788,27 +873,53 @@ function viewPersonHistory(person) {
   const modalEl = document.getElementById("modalPersonHistory");
   if (!modalEl) return;
 
-  document.getElementById("modalPersonTitle").innerText =
-    `Historial: ${person}`;
+  document.getElementById("modalPersonTitle").innerText = `Historial: ${person}`;
   const tbody = document.getElementById("personHistoryBody");
   tbody.innerHTML = "";
-  const history = transactions.filter((t) => t.person === person);
+  
+  // Ordenar cronológicamente para que sea legible como estado de cuenta
+  const history = transactions
+    .filter((t) => t.person === person)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
   let balance = 0;
   history.forEach((t) => {
-    let type = "",
-      color = "";
+    let type = "", color = "";
     if (t.type === "loan_out") {
-      type = "Préstamo";
+      type = "Préstamo (Te debe)";
       color = "text-warning";
       balance += t.amount;
-    } else {
-      type = "Pago";
+    } else if (t.type === "loan_payment") {
+      type = "Cobro (Te pagó)";
       color = "text-success";
       balance -= t.amount;
+    } else if (t.type === "debt_in") {
+      type = "Deuda Asumida (Le debes)";
+      color = "text-danger";
+      balance -= t.amount;
+    } else if (t.type === "debt_payment") {
+      type = "Pago de Deuda (Le pagaste)";
+      color = "text-primary";
+      balance += t.amount;
     }
     tbody.innerHTML += `<tr><td class="ps-3"><small>${t.date}</small></td><td>${type}</td><td class="small text-muted">${t.desc || "-"}</td><td class="text-end pe-3 fw-bold ${color}">${fmt.format(t.amount)}</td></tr>`;
   });
-  document.getElementById("modalPersonBalance").innerText = fmt.format(balance);
+
+  const balanceEl = document.getElementById("modalPersonBalance");
+  if (balanceEl) {
+    balanceEl.className = "fw-bold fs-4";
+    if (balance > 0.01) {
+      balanceEl.innerText = "Te debe: " + fmt.format(balance);
+      balanceEl.classList.add("text-success");
+    } else if (balance < -0.01) {
+      balanceEl.innerText = "Le debes: " + fmt.format(Math.abs(balance));
+      balanceEl.classList.add("text-danger");
+    } else {
+      balanceEl.innerText = "Saldado: " + fmt.format(0);
+      balanceEl.classList.add("text-muted");
+    }
+  }
+
   new bootstrap.Modal(modalEl).show();
 }
 
@@ -873,3 +984,522 @@ function nextPage() {
     renderTable();
   }
 }
+
+// --- PREFERENCES LOGIC ---
+const PREFS_KEY = "finanzas_prefs";
+let hiddenAccounts = JSON.parse(localStorage.getItem(PREFS_KEY)) || [];
+
+function savePreferences() {
+  const checkboxes = document.querySelectorAll('.pref-checkbox');
+  hiddenAccounts = [];
+  checkboxes.forEach(cb => {
+    if (!cb.checked) {
+      hiddenAccounts.push(cb.value);
+    }
+  });
+  localStorage.setItem(PREFS_KEY, JSON.stringify(hiddenAccounts));
+  applyPreferences();
+}
+
+function loadPreferences() {
+  const container = document.getElementById('prefsCheckboxContainer');
+  if (container) {
+    container.innerHTML = "";
+    document.querySelectorAll('.account-card').forEach(card => {
+      const acc = card.getAttribute('data-account');
+      const isVisible = !hiddenAccounts.includes(acc);
+      container.innerHTML += `
+        <div class="col-6">
+          <div class="form-check form-switch pl-0">
+            <input class="form-check-input pref-checkbox" type="checkbox" value="${acc}" id="chk_${acc}" ${isVisible ? 'checked' : ''}>
+            <label class="form-check-label small" for="chk_${acc}">${acc}</label>
+          </div>
+        </div>
+      `;
+    });
+  }
+  applyPreferences();
+}
+
+function applyPreferences() {
+  let visibleCount = 0;
+  document.querySelectorAll('.account-card').forEach(card => {
+    const acc = card.getAttribute('data-account');
+    if (hiddenAccounts.includes(acc)) {
+      card.classList.add('d-none');
+    } else {
+      card.classList.remove('d-none');
+      visibleCount++;
+    }
+  });
+
+  const totalVisible = visibleCount + 1; // +1 for Patrimonio Neto
+  const container = document.getElementById('tarjetas-container');
+  if (container) {
+    container.classList.remove('layout-cols-6', 'layout-cols-5', 'layout-cols-4', 'layout-cols-3');
+    if (totalVisible >= 11) {
+      container.classList.add('layout-cols-6');
+    } else if (totalVisible >= 9) {
+      container.classList.add('layout-cols-5');
+    } else if (totalVisible >= 7) {
+      container.classList.add('layout-cols-4');
+    } else if (totalVisible >= 5) {
+      container.classList.add('layout-cols-3');
+    } else {
+      container.classList.add('layout-cols-4');
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const prefsModalEl = document.getElementById('prefsModal');
+    if (prefsModalEl) {
+        prefsModalEl.addEventListener('show.bs.modal', loadPreferences);
+    }
+    applyPreferences();
+
+    // Summary inputs listeners
+    const summaryStart = document.getElementById("summaryStartDate");
+    const summaryEnd = document.getElementById("summaryEndDate");
+    if (summaryStart && summaryEnd) {
+      summaryStart.addEventListener("change", updateSummary);
+      summaryEnd.addEventListener("change", updateSummary);
+      setSummaryPeriod('this_month');
+    }
+});
+
+// --- EDIT LOGIC ---
+function editTransaction(id) {
+  const t = transactions.find((tx) => tx.id === id);
+  if (!t) return;
+  
+  if (t.type === "transfer_in" || t.type === "transfer_out") {
+    Swal.fire("Aviso", "No se pueden editar transferencias directamente. Elimina y vuelve a crearla.", "info");
+    return;
+  }
+
+  editingId = id;
+  
+  document.getElementById("inputType").value = t.type;
+  document.getElementById("inputAmount").value = t.amount;
+  document.getElementById("inputAccount").value = t.account;
+  document.getElementById("inputDesc").value = t.desc;
+  document.getElementById("inputDate").value = t.date;
+  if(t.person) {
+    document.getElementById("inputPerson").value = t.person;
+  } else {
+    document.getElementById("inputPerson").value = "";
+  }
+  
+  toggleFormFields();
+  
+  document.querySelector('#formTransaction button[type="submit"]').innerHTML = '<i class="fa-solid fa-pen me-2"></i>Actualizar';
+  window.scrollTo(0, 0);
+  document.getElementById("inputAmount").focus();
+}
+
+// --- RESUMEN FINANCIERO LOGIC ---
+let summaryChart = null;
+
+function setSummaryPeriod(period) {
+  const startEl = document.getElementById("summaryStartDate");
+  const endEl = document.getElementById("summaryEndDate");
+  if (!startEl || !endEl) return;
+
+  const today = new Date();
+  let start, end;
+
+  if (period === 'this_month') {
+    start = new Date(today.getFullYear(), today.getMonth(), 1);
+    end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  } else if (period === 'last_month') {
+    start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    end = new Date(today.getFullYear(), today.getMonth(), 0);
+  } else if (period === 'all') {
+    if (transactions.length > 0) {
+      const dates = transactions.map(t => new Date(t.date + "T00:00:00"));
+      start = new Date(Math.min(...dates));
+      end = new Date(Math.max(...dates));
+    } else {
+      start = new Date(today.getFullYear(), 0, 1);
+      end = today;
+    }
+  }
+
+  startEl.value = formatDateLocal(start);
+  endEl.value = formatDateLocal(end);
+
+  updateSummary();
+}
+
+function formatDateLocal(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function updateSummary() {
+  const startVal = document.getElementById("summaryStartDate")?.value;
+  const endVal = document.getElementById("summaryEndDate")?.value;
+  const accountVal = document.getElementById("summaryAccount")?.value || "all";
+
+  if (!startVal || !endVal) return;
+
+  const startDate = new Date(startVal + "T00:00:00");
+  const endDate = new Date(endVal + "T23:59:59");
+
+  let income = 0;
+  let expenses = 0;
+  let tradingProfit = 0;
+  let tradingLoss = 0;
+  let lent = 0;
+  let borrowed = 0;
+  
+  const accountStats = {};
+  const descriptionStats = {};
+
+  transactions.forEach(t => {
+    const tDate = new Date(t.date + "T00:00:00");
+    if (tDate >= startDate && tDate <= endDate) {
+      const isTargetAccount = (accountVal === "all" || t.account === accountVal || (t.type === "transfer" && t.accountTo === accountVal));
+      if (!isTargetAccount) return;
+
+      const val = t.amount;
+
+      // Agrupación para gráfico por cuentas
+      if (accountVal === "all") {
+        if (!accountStats[t.account]) {
+          accountStats[t.account] = { income: 0, expenses: 0 };
+        }
+        if (["ingreso", "trade_profit", "loan_payment", "transfer_in"].includes(t.type)) {
+          accountStats[t.account].income += val;
+        } else if (["gasto", "trade_loss", "loan_out", "debt_payment", "transfer_out"].includes(t.type)) {
+          accountStats[t.account].expenses += val;
+        }
+      }
+
+      // Cálculos totales
+      if (t.type === "ingreso") {
+        income += val;
+      } else if (t.type === "gasto") {
+        expenses += val;
+        descriptionStats[t.desc || "Sin descripción"] = (descriptionStats[t.desc || "Sin descripción"] || 0) + val;
+      } else if (t.type === "trade_profit") {
+        tradingProfit += val;
+        income += val;
+      } else if (t.type === "trade_loss") {
+        tradingLoss += val;
+        expenses += val;
+        descriptionStats[t.desc || "Trading Loss"] = (descriptionStats[t.desc || "Trading Loss"] || 0) + val;
+      } else if (t.type === "loan_out") {
+        lent += val;
+        if (accountVal !== "all") {
+          expenses += val;
+          descriptionStats[`Préstamo a ${t.person}`] = (descriptionStats[`Préstamo a ${t.person}`] || 0) + val;
+        }
+      } else if (t.type === "debt_in") {
+        borrowed += val;
+      } else if (t.type === "loan_payment") {
+        if (accountVal !== "all") {
+          income += val;
+        }
+      } else if (t.type === "debt_payment") {
+        if (accountVal !== "all") {
+          expenses += val;
+          descriptionStats[`Pago de Deuda a ${t.person}`] = (descriptionStats[`Pago de Deuda a ${t.person}`] || 0) + val;
+        }
+      } else if (t.type === "transfer_in" && accountVal !== "all") {
+        income += val;
+      } else if (t.type === "transfer_out" && accountVal !== "all") {
+        expenses += val;
+      }
+    }
+  });
+
+  // Mostrar valores en DOM
+  const net = income - expenses;
+  document.getElementById("summaryIncome").innerText = fmt.format(income);
+  document.getElementById("summaryExpenses").innerText = fmt.format(expenses);
+  document.getElementById("summaryNet").innerText = fmt.format(net);
+
+  const netCard = document.getElementById("summaryNetCard");
+  if (netCard) {
+    netCard.classList.remove("bg-success", "bg-danger", "text-white", "bg-light", "text-muted", "bg-success-subtle", "bg-danger-subtle", "text-success", "text-danger");
+    if (net > 0.01) {
+      netCard.classList.add("bg-success-subtle", "text-success");
+    } else if (net < -0.01) {
+      netCard.classList.add("bg-danger-subtle", "text-danger");
+    } else {
+      netCard.classList.add("bg-light", "text-muted");
+    }
+  }
+
+  // Trading
+  document.getElementById("summaryTradingProfit").innerText = fmt.format(tradingProfit);
+  document.getElementById("summaryTradingLoss").innerText = fmt.format(tradingLoss);
+  const tradingNet = tradingProfit - tradingLoss;
+  const tradingNetEl = document.getElementById("summaryTradingNet");
+  if (tradingNetEl) {
+    tradingNetEl.innerText = fmt.format(tradingNet);
+    tradingNetEl.className = tradingNet > 0.01 ? "fw-bold text-success" : (tradingNet < -0.01 ? "fw-bold text-danger" : "fw-bold text-muted");
+  }
+
+  // Deudas
+  document.getElementById("summaryLent").innerText = fmt.format(lent);
+  document.getElementById("summaryBorrowed").innerText = fmt.format(borrowed);
+  const debtFlow = lent - borrowed;
+  const debtFlowEl = document.getElementById("summaryDebtFlow");
+  if (debtFlowEl) {
+    debtFlowEl.innerText = fmt.format(debtFlow);
+    debtFlowEl.className = debtFlow > 0.01 ? "fw-bold text-warning" : (debtFlow < -0.01 ? "fw-bold text-danger" : "fw-bold text-muted");
+  }
+
+  // Lista de mayores gastos
+  const topExpensesContainer = document.getElementById("summaryTopExpenses");
+  if (topExpensesContainer) {
+    topExpensesContainer.innerHTML = "";
+    const sortedExpenses = Object.entries(descriptionStats).sort((a, b) => b[1] - a[1]);
+    if (sortedExpenses.length === 0) {
+      topExpensesContainer.innerHTML = '<div class="text-center text-muted py-4 small">No hay gastos en este periodo.</div>';
+    } else {
+      sortedExpenses.slice(0, 5).forEach(([desc, amount]) => {
+        const pct = expenses > 0 ? ((amount / expenses) * 100).toFixed(0) : 0;
+        topExpensesContainer.innerHTML += `
+          <div class="list-group-item bg-transparent d-flex justify-content-between align-items-center py-2 px-0 border-bottom-0">
+            <div>
+              <span class="small fw-bold d-block text-truncate" style="max-width: 180px;">${desc}</span>
+              <span class="text-muted" style="font-size: 0.75rem;">${pct}% del total</span>
+            </div>
+            <span class="fw-bold text-danger small">${fmt.format(amount)}</span>
+          </div>
+        `;
+      });
+    }
+  }
+
+  // Renderizar Gráfico
+  renderSummaryChart(accountStats, accountVal);
+}
+
+function renderSummaryChart(accountStats, accountVal) {
+  const canvas = document.getElementById("summaryChart");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  const isDark = document.body.classList.contains("dark-mode");
+  const textColor = isDark ? "#cbd5e1" : "#475569";
+
+  let labels = [];
+  let incomeData = [];
+  let expenseData = [];
+
+  if (accountVal === "all") {
+    labels = Object.keys(accountStats).filter(acc => accountStats[acc].income > 0.01 || accountStats[acc].expenses > 0.01);
+    labels.forEach(acc => {
+      incomeData.push(accountStats[acc].income);
+      expenseData.push(accountStats[acc].expenses);
+    });
+  } else {
+    const typeStats = {
+      "Ingresos": 0,
+      "Gastos": 0,
+      "Profit Trading": 0,
+      "Loss Trading": 0,
+      "Cobros/Préstamos": 0,
+      "Transf. Recibidas": 0,
+      "Transf. Enviadas": 0
+    };
+    
+    const startVal = document.getElementById("summaryStartDate")?.value;
+    const endVal = document.getElementById("summaryEndDate")?.value;
+    const startDate = new Date(startVal + "T00:00:00");
+    const endDate = new Date(endVal + "T23:59:59");
+
+    transactions.forEach(t => {
+      const tDate = new Date(t.date + "T00:00:00");
+      if (tDate >= startDate && tDate <= endDate) {
+        const val = t.amount;
+        if (t.account === accountVal) {
+          if (t.type === "ingreso") typeStats["Ingresos"] += val;
+          else if (t.type === "gasto") typeStats["Gastos"] += val;
+          else if (t.type === "trade_profit") typeStats["Profit Trading"] += val;
+          else if (t.type === "trade_loss") typeStats["Loss Trading"] += val;
+          else if (t.type === "loan_out") typeStats["Cobros/Préstamos"] += val;
+          else if (t.type === "debt_payment") typeStats["Cobros/Préstamos"] += val;
+          else if (t.type === "transfer_out") typeStats["Transf. Enviadas"] += val;
+        }
+        if (t.account === accountVal && t.type === "transfer_in") {
+          typeStats["Transf. Recibidas"] += val;
+        }
+        if (t.person && t.person !== "") {
+          if (t.type === "loan_payment" && t.account === accountVal) typeStats["Cobros/Préstamos"] += val;
+        }
+      }
+    });
+
+    labels = Object.keys(typeStats).filter(k => typeStats[k] > 0.01);
+    labels.forEach(label => {
+      if (["Ingresos", "Profit Trading", "Transf. Recibidas", "Cobros/Préstamos"].includes(label)) {
+        incomeData.push(typeStats[label]);
+        expenseData.push(0);
+      } else {
+        incomeData.push(0);
+        expenseData.push(typeStats[label]);
+      }
+    });
+  }
+
+  const data = {
+    labels: labels,
+    datasets: [
+      {
+        label: "Ingresos",
+        data: incomeData,
+        backgroundColor: "#20cc9c",
+        borderWidth: 0,
+        borderRadius: 4,
+      },
+      {
+        label: "Gastos",
+        data: expenseData,
+        backgroundColor: "#ff4d4d",
+        borderWidth: 0,
+        borderRadius: 4,
+      }
+    ]
+  };
+
+  if (summaryChart) {
+    summaryChart.destroy();
+  }
+
+  summaryChart = new Chart(ctx, {
+    type: "bar",
+    data: data,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: textColor, font: { size: 10 } }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: textColor, font: { size: 10 } }
+        },
+        y: {
+          grid: { color: isDark ? "#334155" : "#e2e8f0" },
+          ticks: { color: textColor, font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+// --- PASSWORD RESET & CHANGE LOGIC ---
+function forgotPassword(e) {
+  if (e) e.preventDefault();
+  
+  // Cerrar el modal de autenticación para que no tape el SweetAlert
+  const modalEl = document.getElementById("modalAuth");
+  let modalInstance = null;
+  if (modalEl) {
+    modalInstance = bootstrap.Modal.getInstance(modalEl);
+    if (modalInstance) modalInstance.hide();
+  }
+
+  const emailInput = document.getElementById("authEmail")?.value.trim() || "";
+  
+  Swal.fire({
+    title: 'Restablecer Contraseña',
+    text: 'Ingresa tu correo electrónico registrado y te enviaremos un enlace gratuito para restablecer tu contraseña:',
+    input: 'email',
+    inputValue: emailInput,
+    showCancelButton: true,
+    confirmButtonText: 'Enviar Enlace',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    inputPlaceholder: 'tu-correo@ejemplo.com',
+    inputValidator: (value) => {
+      if (!value) {
+        return '¡Debes escribir un correo electrónico!';
+      }
+    }
+  }).then((result) => {
+    if (result.isConfirmed && result.value) {
+      const email = result.value;
+      Swal.showLoading();
+      auth.sendPasswordResetEmail(email)
+        .then(() => {
+          Swal.fire({
+            icon: 'success',
+            title: '¡Correo Enviado!',
+            text: `Se envió un correo de restablecimiento a: ${email}. Revisa tu bandeja de entrada y correo no deseado (spam).`,
+            confirmButtonText: 'Entendido'
+          });
+        })
+        .catch((error) => {
+          console.error("Error enviando restablecimiento:", error);
+          let msg = "No se pudo enviar el correo de restablecimiento. Inténtalo más tarde.";
+          if (error.code === "auth/user-not-found") {
+            msg = "No existe ningún usuario registrado con este correo electrónico.";
+          } else if (error.code === "auth/invalid-email") {
+            msg = "El formato de correo no es válido.";
+          }
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: msg
+          }).then(() => {
+            // Reabrir modal si hubo un error para que el usuario pueda corregir los datos
+            if (modalInstance) modalInstance.show();
+          });
+        });
+    } else {
+      // Si cancela, reabrir el modal
+      if (modalInstance) modalInstance.show();
+    }
+  });
+}
+
+function changePasswordLoggedIn() {
+  if (!currentUser) return;
+  
+  Swal.fire({
+    title: 'Cambiar Contraseña',
+    text: `¿Deseas recibir un correo electrónico en ${currentUser.email} para actualizar tu contraseña de forma segura?`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, enviar correo',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+  }).then((result) => {
+    if (result.isConfirmed) {
+      Swal.showLoading();
+      auth.sendPasswordResetEmail(currentUser.email)
+        .then(() => {
+          Swal.fire({
+            icon: 'success',
+            title: '¡Correo Enviado!',
+            text: `Se ha enviado un enlace seguro para restablecer tu contraseña a: ${currentUser.email}`,
+            confirmButtonText: 'Entendido'
+          });
+        })
+        .catch((error) => {
+          console.error("Error al enviar restablecimiento:", error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Hubo un problema al enviar el correo. Por favor, inténtalo de nuevo.'
+          });
+        });
+    }
+  });
+}
+
+

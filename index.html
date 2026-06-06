@@ -92,6 +92,16 @@
                 <h6 class="dropdown-header small text-uppercase">Opciones</h6>
               </li>
               <li>
+                <button class="dropdown-item rounded" data-bs-toggle="modal" data-bs-target="#prefsModal">
+                  <i class="fa-solid fa-eye me-2"></i>Preferencias (Visibilidad)
+                </button>
+              </li>
+              <li id="menuChangePassword" style="display: none;">
+                <button class="dropdown-item rounded" onclick="changePasswordLoggedIn()">
+                  <i class="fa-solid fa-key me-2"></i>Cambiar Contraseña
+                </button>
+              </li>
+              <li>
                 <button class="dropdown-item rounded" onclick="exportData()">
                   <i class="fa-solid fa-download me-2"></i>Descargar JSON
                 </button>
@@ -125,9 +135,9 @@
       </div>
 
       <!-- TARJETAS: Patrimonio Neto + 9 cuentas (5 por fila) -->
-      <div class="row g-3 mb-4">
+      <div class="row justify-content-center g-3 mb-4" id="tarjetas-container">
         <!-- Fila 1: Patrimonio Neto + 4 bancos (5 por fila) -->
-        <div class="col-md-6 col-lg-4 col-xl-2-4">
+        <div class="col-md-6 col-lg-4 col-xl-2">
           <div class="card bg-total text-white h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -139,7 +149,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2-4">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Pichincha">
           <div class="card bg-pichincha h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -155,7 +165,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2-4">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="DeUna">
           <div class="card bg-deuna h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -171,7 +181,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2-4">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Guayaquil">
           <div class="card bg-guayaquil h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -187,7 +197,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2-4">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="PeiGo">
           <div class="card bg-peigo h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -204,7 +214,7 @@
         </div>
 
         <!-- Fila 2: 6 bancos más -->
-        <div class="col-md-6 col-lg-4 col-xl-2">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Produbanco">
           <div class="card bg-produbanco text-white h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -220,7 +230,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Binance">
           <div class="card bg-binance h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -236,7 +246,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="UglyCash">
           <div class="card bg-ugly h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -252,7 +262,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Airtm">
           <div class="card bg-airtm text-white h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -268,7 +278,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Efectivo">
           <div class="card bg-efectivo text-white h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -284,7 +294,23 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Morse">
+          <div class="card bg-morse text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Morse
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblMorse">$0.00</h3>
+              <img
+                src="assets/morse.webp"
+                class="card-logo-img"
+                onerror="this.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="PorCobrar">
           <div class="card bg-loans text-white h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -348,6 +374,12 @@
                     <option value="loan_payment">
                       🤝 Cobrar / Préstamo (Entrada)
                     </option>
+                    <option value="debt_in">
+                      🟥 Asumir Deuda (Yo debo)
+                    </option>
+                    <option value="debt_payment">
+                      🟩 Pagar Mi Deuda
+                    </option>
                   </select>
                 </div>
 
@@ -364,6 +396,7 @@
                     <option value="Pichincha">Banco Pichincha</option>
                     <option value="Binance">Binance</option>
                     <option value="DeUna">DeUna!</option>
+                    <option value="Morse">Morse</option>
                     <option value="Efectivo">Efectivo</option>
                     <option value="PeiGo">PeiGo</option>
                     <option value="Produbanco">Produbanco</option>
@@ -382,6 +415,7 @@
                     <option value="Pichincha">Banco Pichincha</option>
                     <option value="Binance" selected>Binance</option>
                     <option value="DeUna">DeUna!</option>
+                    <option value="Morse">Morse</option>
                     <option value="Efectivo">Efectivo</option>
                     <option value="PeiGo">PeiGo</option>
                     <option value="Produbanco">Produbanco</option>
@@ -397,7 +431,10 @@
                     class="form-control filled-input"
                     id="inputPerson"
                     placeholder="Nombre (ej. Jeanpier)"
+                    list="personList"
+                    autocomplete="off"
                   />
+                  <datalist id="personList"></datalist>
                 </div>
 
                 <div class="mb-3">
@@ -485,6 +522,15 @@
                     <i class="fa-solid fa-user-group me-2"></i>Deudas Activas
                   </button>
                 </li>
+                <li class="nav-item">
+                  <button
+                    class="nav-link fw-bold"
+                    data-bs-toggle="pill"
+                    data-bs-target="#tab-resumen"
+                  >
+                    <i class="fa-solid fa-chart-pie me-2"></i>Resumen
+                  </button>
+                </li>
               </ul>
             </div>
 
@@ -510,6 +556,7 @@
                       <option value="Pichincha">Banco Pichincha</option>
                       <option value="Binance">Binance</option>
                       <option value="DeUna">DeUna!</option>
+                    <option value="Morse">Morse</option>
                       <option value="Efectivo">Efectivo</option>
                       <option value="PeiGo">PeiGo</option>
                       <option value="Produbanco">Produbanco</option>
@@ -565,6 +612,12 @@
 
                 <!-- TABLA DEUDORES -->
                 <div class="tab-pane fade p-4" id="tab-prestamos">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Listado de Personas</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="window.scrollTo(0,0); document.getElementById('inputType').value='debt_in'; toggleFormFields(); document.getElementById('inputPerson').focus();">
+                      <i class="fa-solid fa-plus me-1"></i>Agregar Deuda
+                    </button>
+                  </div>
                   <div class="row g-3" id="debtCardsContainer"></div>
                   <div
                     id="noDebtsMsg"
@@ -575,6 +628,138 @@
                       <i class="fa-solid fa-thumbs-up fa-3x opacity-25"></i>
                     </div>
                     <p>¡Todo en orden! Nadie te debe dinero actualmente.</p>
+                  </div>
+                </div>
+
+                <!-- TABLA RESUMEN -->
+                <div class="tab-pane fade p-4" id="tab-resumen">
+                  <!-- FILTROS -->
+                  <div class="row g-3 mb-4 align-items-end">
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold text-muted">Fecha Inicio</label>
+                      <input type="date" id="summaryStartDate" class="form-control form-control-sm filled-input">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold text-muted">Fecha Fin</label>
+                      <input type="date" id="summaryEndDate" class="form-control form-control-sm filled-input">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold text-muted">Cuenta</label>
+                      <select id="summaryAccount" class="form-select form-select-sm filled-input" onchange="updateSummary()">
+                        <option value="all">Todas las Cuentas</option>
+                        <option value="Pichincha">Banco Pichincha</option>
+                        <option value="DeUna">DeUna!</option>
+                        <option value="Guayaquil">Banco Guayaquil</option>
+                        <option value="PeiGo">PeiGo</option>
+                        <option value="Produbanco">Produbanco</option>
+                        <option value="Binance">Binance</option>
+                        <option value="UglyCash">Ugly Cash</option>
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Airtm">Airtm</option>
+                        <option value="Morse">Morse</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3 d-flex gap-2 justify-content-end">
+                      <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="setSummaryPeriod('this_month')">Este Mes</button>
+                      <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="setSummaryPeriod('last_month')">Mes Anterior</button>
+                      <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setSummaryPeriod('all')">Todo</button>
+                    </div>
+                  </div>
+
+                  <!-- TARJETAS DE INDICADORES -->
+                  <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                      <div class="card bg-success text-white border-0 shadow-sm rounded-3">
+                        <div class="card-body p-3">
+                          <h6 class="text-uppercase opacity-75 small fw-bold mb-1">Ingresos del Periodo</h6>
+                          <h4 class="fw-bold mb-0" id="summaryIncome">$0.00</h4>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="card bg-danger text-white border-0 shadow-sm rounded-3">
+                        <div class="card-body p-3">
+                          <h6 class="text-uppercase opacity-75 small fw-bold mb-1">Gastos del Periodo</h6>
+                          <h4 class="fw-bold mb-0" id="summaryExpenses">$0.00</h4>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="card border-0 shadow-sm rounded-3" id="summaryNetCard">
+                        <div class="card-body p-3">
+                          <h6 class="text-uppercase text-muted small fw-bold mb-1">Flujo Neto</h6>
+                          <h4 class="fw-bold mb-0" id="summaryNet">$0.00</h4>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- SEGUNDA SECCIÓN DE INDICADORES (Trading & Deudas) -->
+                  <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                      <div class="card card-custom border-0 shadow-sm h-100 rounded-3">
+                        <div class="card-body p-3">
+                          <h6 class="fw-bold text-muted small text-uppercase mb-3"><i class="fa-solid fa-chart-line me-2 text-primary"></i>Métricas de Trading</h6>
+                          <div class="d-flex justify-content-between mb-2">
+                            <span class="small text-muted">Ganancias:</span>
+                            <span class="fw-bold text-success" id="summaryTradingProfit">$0.00</span>
+                          </div>
+                          <div class="d-flex justify-content-between mb-2">
+                            <span class="small text-muted">Pérdidas:</span>
+                            <span class="fw-bold text-danger" id="summaryTradingLoss">$0.00</span>
+                          </div>
+                          <hr class="my-2">
+                          <div class="d-flex justify-content-between fw-bold">
+                            <span class="small">Resultado Neto:</span>
+                            <span id="summaryTradingNet">$0.00</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="card card-custom border-0 shadow-sm h-100 rounded-3">
+                        <div class="card-body p-3">
+                          <h6 class="fw-bold text-muted small text-uppercase mb-3"><i class="fa-solid fa-user-group me-2 text-primary"></i>Métricas de Deudas</h6>
+                          <div class="d-flex justify-content-between mb-2">
+                            <span class="small text-muted">Dinero Prestado (Salida):</span>
+                            <span class="fw-bold text-warning" id="summaryLent">$0.00</span>
+                          </div>
+                          <div class="d-flex justify-content-between mb-2">
+                            <span class="small text-muted">Deudas Asumidas (Entrada):</span>
+                            <span class="fw-bold text-danger" id="summaryBorrowed">$0.00</span>
+                          </div>
+                          <hr class="my-2">
+                          <div class="d-flex justify-content-between fw-bold">
+                            <span class="small">Flujo de Deuda:</span>
+                            <span id="summaryDebtFlow">$0.00</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- GRÁFICOS Y ANÁLISIS DETALLADO -->
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <div class="card card-custom border-0 shadow-sm rounded-3">
+                        <div class="card-body p-3">
+                          <h6 class="fw-bold text-muted small text-uppercase mb-3 text-center">Comparativa por Cuentas</h6>
+                          <div style="height: 250px; position: relative;">
+                            <canvas id="summaryChart"></canvas>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="card card-custom border-0 shadow-sm rounded-3">
+                        <div class="card-body p-3">
+                          <h6 class="fw-bold text-muted small text-uppercase mb-3">Mayores Gastos por Concepto</h6>
+                          <div id="summaryTopExpenses" class="list-group list-group-flush" style="max-height: 250px; overflow-y: auto;">
+                            <!-- Generado dinámicamente -->
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -689,12 +874,36 @@
                   Crear Cuenta Nueva
                 </button>
               </div>
+              <div class="mt-3 text-center">
+                <a href="#" class="small text-muted text-decoration-none" onclick="forgotPassword(event)">¿Olvidaste tu contraseña?</a>
+              </div>
             </form>
             <p
               class="mt-3 small text-danger fw-bold"
               id="authError"
               style="display: none"
             ></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREFS MODAL -->
+    <div class="modal fade" id="prefsModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold">Visibilidad de Cuentas</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-muted mb-3">Marca las cuentas/tarjetas que deseas MOSTRAR en tu panel principal.</p>
+            <div class="row g-2" id="prefsCheckboxContainer">
+              <!-- Generado dinamicamente desde JS -->
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-primary px-4 rounded-pill" data-bs-dismiss="modal" onclick="savePreferences()">Guardar</button>
           </div>
         </div>
       </div>

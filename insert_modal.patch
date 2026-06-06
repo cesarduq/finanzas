@@ -1,0 +1,26 @@
+--- index.html	2026-06-06 12:00:00.000000000 -0500
++++ index.html	2026-06-06 12:00:00.000000000 -0500
+@@ -693,2 +693,31 @@
+ 
++    <!-- PREFS MODAL -->
++    <div class="modal fade" id="prefsModal" tabindex="-1">
++      <div class="modal-dialog modal-dialog-centered">
++        <div class="modal-content border-0 shadow">
++          <div class="modal-header border-0 pb-0">
++            <h5 class="modal-title fw-bold">Ocultar Cuentas</h5>
++            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
++          </div>
++          <div class="modal-body">
++            <p class="small text-muted mb-3">Marca las cuentas/tarjetas que deseas Ocultar de tu panel principal.</p>
++            <div class="row g-2" id="prefsCheckboxContainer">
++              <!-- Generado desde JS -->
++            </div>
++          </div>
++          <div class="modal-footer border-0">
++            <button type="button" class="btn btn-primary px-4 rounded-pill" data-bs-dismiss="modal" onclick="savePreferences()">Guardar</button>
++          </div>
++        </div>
++      </div>
++    </div>
++
+     <!-- SCRIPTS -->

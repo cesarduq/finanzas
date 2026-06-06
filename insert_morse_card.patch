@@ -1,0 +1,23 @@
+--- index.html	2026-06-06 12:00:00.000000000 -0500
++++ index.html	2026-06-06 12:00:00.000000000 -0500
+@@ -285,6 +285,19 @@
+         </div>
+ 
++        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Morse">
++          <div class="card bg-morse text-white h-100 border-0">
++            <div class="card-body position-relative p-4">
++              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
++                Morse
++              </h6>
++              <h3 class="fw-bold mt-2 mb-0" id="lblMorse">$0.00</h3>
++              <img
++                src="assets/morse.webp"
++                class="card-logo-img"
++                onerror="this.style.display = 'none'"
++              />
++            </div>
++          </div>
++        </div>
++
+         <div class="col-md-6 col-lg-4 col-xl-2">
+           <div class="card bg-loans text-white h-100 border-0">
