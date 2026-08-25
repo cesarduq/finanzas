@@ -40,8 +40,22 @@ const dateInput = document.getElementById("inputDate");
 initApp();
 
 function initApp() {
-  // 1. Configurar fecha de hoy
-  if (dateInput) dateInput.valueAsDate = new Date();
+  // 1. Configurar fecha de hoy solo si no hay una guardada
+  const saved = localStorage.getItem(LAST_FORM_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.date && dateInput) {
+        dateInput.value = parsed.date;
+      } else if (dateInput) {
+        dateInput.valueAsDate = new Date();
+      }
+    } catch (e) {
+      if (dateInput) dateInput.valueAsDate = new Date();
+    }
+  } else {
+    if (dateInput) dateInput.valueAsDate = new Date();
+  }
 
   // 2. Cargar funciones visuales
   checkTheme();
@@ -166,9 +180,10 @@ function saveData() {
 function saveLastFormState() {
   const account = document.getElementById("inputAccount")?.value;
   const type = document.getElementById("inputType")?.value;
+  const date = document.getElementById("inputDate")?.value;
 
   if (account && type) {
-    const formState = { account, type };
+    const formState = { account, type, date: date || null };
     localStorage.setItem(LAST_FORM_KEY, JSON.stringify(formState));
   }
 }
@@ -177,7 +192,7 @@ function restoreLastFormState() {
   const saved = localStorage.getItem(LAST_FORM_KEY);
   if (saved) {
     try {
-      const { account, type } = JSON.parse(saved);
+      const { account, type, date } = JSON.parse(saved);
 
       const accountSelect = document.getElementById("inputAccount");
       const typeSelect = document.getElementById("inputType");
@@ -188,6 +203,10 @@ function restoreLastFormState() {
       if (typeSelect && type) {
         typeSelect.value = type;
         toggleFormFields();
+      }
+      // Restaurar fecha si existe
+      if (date && dateInput) {
+        dateInput.value = date;
       }
     } catch (e) {
       console.error("Error recuperando estado del formulario:", e);
@@ -320,6 +339,7 @@ if (form) {
       return;
     }
 
+  const commission = type === "transfer" ? (parseFloat(document.getElementById("inputCommission").value) || 0) : 0;
     const baseTx = { id: Date.now(), date: date, amount: amount, desc: desc };
 
     if (type === "transfer") {
@@ -329,12 +349,15 @@ if (form) {
         editingId = null;
         document.querySelector('#formTransaction button[type="submit"]').innerHTML = 'Guardar';
       }
+      const amountIn = Math.max(0, amount - commission);
+      const commissionNote = commission > 0 ? ` (comisión: ${fmt.format(commission)})` : '';
       const txOut = {
         ...baseTx,
         id: Date.now(),
         type: "transfer_out",
         account: accountFrom,
-        desc: `Transferencia a ${accountTo} - ${desc}`,
+        commission: commission > 0 ? commission : undefined,
+        desc: `Transferencia a ${accountTo}${commissionNote} - ${desc}`,
         person: null,
       };
       const txIn = {
@@ -342,7 +365,8 @@ if (form) {
         id: Date.now() + 1,
         type: "transfer_in",
         account: accountTo,
-        desc: `Transferencia desde ${accountFrom} - ${desc}`,
+        amount: amountIn,
+        desc: `Transferencia desde ${accountFrom}${commissionNote} - ${desc}`,
         person: null,
       };
       transactions.unshift(txIn);
@@ -367,11 +391,12 @@ if (form) {
 
     saveData();
 
-    // Resetear solo los campos de entrada, NO el banco y acción
+    // Resetear solo los campos de entrada, NO el banco, acción ni fecha
     document.getElementById("inputAmount").value = "";
     document.getElementById("inputDesc").value = "";
     document.getElementById("inputPerson").value = "";
-    dateInput.valueAsDate = new Date();
+    document.getElementById("inputCommission").value = "";
+    // La fecha se mantiene igual a la última usada
     // NO llamamos a toggleFormFields() para mantener la visibilidad de campos
 
     const Toast = Swal.mixin({
@@ -401,6 +426,9 @@ function toggleFormFields() {
   groupAccountTo.classList.add("d-none");
   lblAccount.innerText = "Cuenta";
 
+  const groupCommission = document.getElementById("groupCommission");
+  if (groupCommission) groupCommission.classList.add("d-none");
+
   if (
     type === "loan_out" ||
     type === "loan_payment" ||
@@ -412,7 +440,68 @@ function toggleFormFields() {
   } else if (type === "transfer") {
     lblAccount.innerText = "Desde (Origen)";
     groupAccountTo.classList.remove("d-none");
+    if (groupCommission) groupCommission.classList.remove("d-none");
+    updateCommissionHint();
   }
+}
+
+// Actualiza el hint de comisión con el monto neto que recibirá el destino
+function updateCommissionHint() {
+  const hint = document.getElementById("commissionHint");
+  if (!hint) return;
+  const amount = parseFloat(document.getElementById("inputAmount")?.value) || 0;
+  const commission = parseFloat(document.getElementById("inputCommission")?.value) || 0;
+  const accountTo = document.getElementById("inputAccountTo")?.value || "destino";
+  if (amount > 0 && commission > 0) {
+    const net = Math.max(0, amount - commission);
+    hint.innerHTML = `<i class="fa-solid fa-circle-info me-1 text-warning"></i>${accountTo} recibirá <strong>${fmt.format(net)}</strong>`;
+  } else {
+    hint.innerHTML = "";
+  }
+}
+
+// Filtrar tabla por banco al hacer clic en tarjeta
+function filterByAccount(account) {
+  const filterEl = document.getElementById("filterAccount");
+  if (!filterEl) return;
+  filterEl.value = account;
+  currentPage = 1;
+  renderTable();
+  // Activar pestaña Historial
+  const historialTab = document.querySelector('[data-bs-target="#tab-historial"]');
+  if (historialTab) {
+    const tabInstance = bootstrap.Tab.getOrCreateInstance(historialTab);
+    tabInstance.show();
+  }
+  // Scroll suave a la tabla
+  const tableEl = document.getElementById("transactionTableBody");
+  if (tableEl) tableEl.closest(".card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// Calcular balance ANTES de cada transacción por cuenta
+function computeRunningBalances() {
+  // Ordenar cronológicamente (más antigua primero)
+  const sorted = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
+
+  const running = {}; // balance actual de cada cuenta
+  const prevBalMap = new Map(); // id -> balance ANTES de la tx
+
+  const addTypes = ["ingreso", "trade_profit", "loan_payment", "transfer_in"];
+  const subTypes = ["gasto", "trade_loss", "loan_out", "transfer_out", "debt_payment"];
+
+  sorted.forEach((t) => {
+    if (running[t.account] === undefined) running[t.account] = 0;
+    // Guardar balance ANTES de aplicar esta tx
+    prevBalMap.set(t.id, running[t.account]);
+    // Aplicar
+    if (addTypes.includes(t.type)) {
+      running[t.account] += t.amount;
+    } else if (subTypes.includes(t.type)) {
+      running[t.account] -= t.amount;
+    }
+  });
+
+  return prevBalMap;
 }
 
 // Borrar Item
@@ -461,6 +550,8 @@ function toggleDarkMode() {
       : "fa-solid fa-moon text-secondary";
   localStorage.setItem("theme", isDark ? "dark" : "light");
   if (assetsChart) renderChart(calculateBalances().bal);
+  if (projectionChart) onProjectionInputChange();
+  if (typeof updateSummary === "function" && document.getElementById("summaryStartDate")) updateSummary();
 }
 
 function checkTheme() {
@@ -487,6 +578,8 @@ function calculateBalances() {
     Efectivo: 0,
     Airtm: 0,
     Morse: 0,
+    SP500: 0,
+    Nasdaq: 0,
     PorCobrar: 0,
     Total: 0,
   };
@@ -537,6 +630,8 @@ function calculateBalances() {
     bal["Efectivo"] +
     bal["Airtm"] +
     bal["Morse"] +
+    bal["SP500"] +
+    bal["Nasdaq"] +
     bal["PorCobrar"];
   return { bal, debts };
 }
@@ -582,6 +677,10 @@ function renderAll() {
     document.getElementById("lblAirtm").innerText = fmt.format(bal["Airtm"]);
   if (document.getElementById("lblMorse"))
     document.getElementById("lblMorse").innerText = fmt.format(bal["Morse"]);
+  if (document.getElementById("lblSP500"))
+    document.getElementById("lblSP500").innerText = fmt.format(bal["SP500"]);
+  if (document.getElementById("lblNasdaq"))
+    document.getElementById("lblNasdaq").innerText = fmt.format(bal["Nasdaq"]);
   if (document.getElementById("lblPorCobrar"))
     document.getElementById("lblPorCobrar").innerText = fmt.format(
       bal["PorCobrar"],
@@ -593,6 +692,7 @@ function renderAll() {
   if (document.getElementById("summaryStartDate")) {
     updateSummary();
   }
+  updateProjectionActualsDisplay(bal);
 }
 
 // Renderizar Tabla
@@ -638,6 +738,7 @@ function renderTable() {
 
   // 4. Renderizar Filas
   tbody.innerHTML = "";
+  const prevBalMap = computeRunningBalances();
   paginatedItems.forEach((t) => {
     let color = "",
       sign = "",
@@ -706,12 +807,20 @@ function renderTable() {
         break;
     }
 
+    const prevBal = prevBalMap.get(t.id);
+    const prevBalHtml = prevBal !== undefined
+      ? `<span class="tx-prev-balance">${fmt.format(prevBal)}</span>`
+      : "";
+
     const row = `<tr>
             <td class="ps-4 small opacity-75">${t.date}</td>
             <td><span class="badge bg-secondary badge-account">${t.account}</span></td>
             <td><div class="d-flex align-items-center"><i class="fa-solid ${icon} me-2 small text-muted"></i>${t.desc}</div></td>
             <td class="small">${label}</td>
-            <td class="text-end fw-bold ${color}">${sign}${fmt.format(t.amount)}</td>
+            <td class="text-end">
+              <span class="fw-bold ${color}">${sign}${fmt.format(t.amount)}</span>
+              ${prevBalHtml}
+            </td>
             <td class="text-center pe-4">
               <button class="btn btn-sm text-primary border-0 me-1" onclick="editTransaction(${t.id})"><i class="fa-solid fa-pen"></i></button>
               <button class="btn btn-sm text-danger border-0" onclick="deleteTransaction(${t.id})"><i class="fa-solid fa-trash-can"></i></button>
@@ -809,6 +918,8 @@ function renderChart(bal) {
       "Efectivo",
       "Airtm",
       "Morse",
+      "S&P 500",
+      "NASDAQ",
       "Por Cobrar",
     ],
     datasets: [
@@ -824,20 +935,24 @@ function renderChart(bal) {
           bal["Efectivo"],
           bal["Airtm"],
           bal["Morse"],
+          bal["SP500"],
+          bal["Nasdaq"],
           bal["PorCobrar"],
         ].map((v) => Math.max(0, v)),
         backgroundColor: [
-          "#FFDD00", // Pichincha (Amarillo)
-          "#1E90FF", // De Una (Azul Dodger)
-          "#E3007E", // Guayaquil (Magenta)
-          "#00D1D1", // PeiGo (Cyan/Turquesa)
-          "#141E30", // Produbanco (Azul Oscuro)
-          "#F0B90B", // Binance (Dorado)
-          "#1f2937", // Ugly (Gris Oscuro)
-          "#485563", // Efectivo (Gris)
-          "#00AEEF", // Airtm (Azul/Cyan)
-          "#ff7e5f", // Morse (Naranja)
-          "#8E2DE2", // Por Cobrar (Morado)
+          "#FFDD00", // Pichincha
+          "#1E90FF", // De Una
+          "#E3007E", // Guayaquil
+          "#00D1D1", // PeiGo
+          "#141E30", // Produbanco
+          "#F0B90B", // Binance
+          "#1f2937", // Ugly
+          "#485563", // Efectivo
+          "#00AEEF", // Airtm
+          "#ff7e5f", // Morse
+          "#00a651", // S&P 500
+          "#283593", // NASDAQ
+          "#8E2DE2", // Por Cobrar
         ],
         borderWidth: 0,
         hoverOffset: 4,
@@ -868,59 +983,200 @@ function renderChart(bal) {
   }
 }
 
-// Ver historial persona
+// Estado de navegación de historial de persona y ciclos
+let personHistoryState = {
+  person: "",
+  cycles: [],
+  allTxs: [],
+  selectedCycleIndex: 0,
+};
+
+// Ver historial persona con separación inteligente por ciclos, orden más reciente y saldos previos
 function viewPersonHistory(person) {
   const modalEl = document.getElementById("modalPersonHistory");
   if (!modalEl) return;
 
-  document.getElementById("modalPersonTitle").innerText = `Historial: ${person}`;
-  const tbody = document.getElementById("personHistoryBody");
-  tbody.innerHTML = "";
-  
-  // Ordenar cronológicamente para que sea legible como estado de cuenta
-  const history = transactions
+  personHistoryState.person = person;
+
+  // 1. Filtrar transacciones de esta persona y ordenar cronológicamente ascendente para calcular saldos progresivos
+  const historyAsc = transactions
     .filter((t) => t.person === person)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  let balance = 0;
-  history.forEach((t) => {
-    let type = "", color = "";
+  let currentBalance = 0;
+  let currentCycle = [];
+  const rawCycles = [];
+  const allEnrichedTxs = [];
+
+  historyAsc.forEach((t, idx) => {
+    const prevBal = currentBalance;
+    let typeDesc = "";
+    let typeBadge = "";
+    let color = "";
+    let impact = 0;
+
     if (t.type === "loan_out") {
-      type = "Préstamo (Te debe)";
+      typeDesc = "Préstamo (Te debe)";
+      typeBadge = `<span class="badge bg-warning-subtle text-warning border border-warning border-opacity-25"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Préstamo</span>`;
       color = "text-warning";
-      balance += t.amount;
+      impact = t.amount;
     } else if (t.type === "loan_payment") {
-      type = "Cobro (Te pagó)";
+      typeDesc = "Cobro (Te pagó)";
+      typeBadge = `<span class="badge bg-success-subtle text-success border border-success border-opacity-25"><i class="fa-solid fa-arrow-down-left-and-up-right-to-center me-1"></i>Cobro</span>`;
       color = "text-success";
-      balance -= t.amount;
+      impact = -t.amount;
     } else if (t.type === "debt_in") {
-      type = "Deuda Asumida (Le debes)";
+      typeDesc = "Deuda Asumida (Le debes)";
+      typeBadge = `<span class="badge bg-danger-subtle text-danger border border-danger border-opacity-25"><i class="fa-solid fa-hand-holding-dollar me-1"></i>Deuda Asumida</span>`;
       color = "text-danger";
-      balance -= t.amount;
+      impact = -t.amount;
     } else if (t.type === "debt_payment") {
-      type = "Pago de Deuda (Le pagaste)";
+      typeDesc = "Pago de Deuda (Le pagaste)";
+      typeBadge = `<span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25"><i class="fa-solid fa-money-bill-wave me-1"></i>Pago Deuda</span>`;
       color = "text-primary";
-      balance += t.amount;
+      impact = t.amount;
     }
-    tbody.innerHTML += `<tr><td class="ps-3"><small>${t.date}</small></td><td>${type}</td><td class="small text-muted">${t.desc || "-"}</td><td class="text-end pe-3 fw-bold ${color}">${fmt.format(t.amount)}</td></tr>`;
+
+    currentBalance = Math.round((currentBalance + impact) * 100) / 100;
+    const isSettled = Math.abs(currentBalance) < 0.005;
+
+    const txItem = {
+      ...t,
+      typeDesc,
+      typeBadge,
+      color,
+      prevBalance: prevBal,
+      newBalance: currentBalance,
+      isSettled,
+    };
+
+    currentCycle.push(txItem);
+    allEnrichedTxs.push(txItem);
+
+    // Si la transacción dejó el saldo en 0 y hay más transacciones posteriores, cerramos este ciclo
+    if (isSettled && idx < historyAsc.length - 1) {
+      rawCycles.push([...currentCycle]);
+      currentCycle = [];
+    }
   });
 
-  const balanceEl = document.getElementById("modalPersonBalance");
-  if (balanceEl) {
-    balanceEl.className = "fw-bold fs-4";
-    if (balance > 0.01) {
-      balanceEl.innerText = "Te debe: " + fmt.format(balance);
-      balanceEl.classList.add("text-success");
-    } else if (balance < -0.01) {
-      balanceEl.innerText = "Le debes: " + fmt.format(Math.abs(balance));
-      balanceEl.classList.add("text-danger");
+  if (currentCycle.length > 0) {
+    rawCycles.push(currentCycle);
+  }
+
+  // Invertir lista de ciclos para que el ciclo 0 sea el Ciclo Actual (el más reciente)
+  personHistoryState.cycles = rawCycles.reverse();
+  personHistoryState.allTxs = allEnrichedTxs;
+  personHistoryState.selectedCycleIndex = 0; // Por defecto mostrar el ciclo actual
+
+  renderPersonHistoryModalContent();
+  new bootstrap.Modal(modalEl).show();
+}
+
+function selectDebtCycle(cycleIdx) {
+  personHistoryState.selectedCycleIndex = cycleIdx;
+  renderPersonHistoryModalContent();
+}
+
+function renderPersonHistoryModalContent() {
+  const { person, cycles, allTxs, selectedCycleIndex } = personHistoryState;
+
+  document.getElementById("modalPersonTitle").innerText = `Historial: ${person}`;
+
+  const totalCycles = cycles.length;
+  const currentTotalBal = allTxs.length > 0 ? allTxs[allTxs.length - 1].newBalance : 0;
+
+  // Renderizar barra de navegación de ciclos
+  const navEl = document.getElementById("personHistoryCyclesNav");
+  if (navEl) {
+    navEl.innerHTML = "";
+    if (totalCycles > 1) {
+      cycles.forEach((cyc, idx) => {
+        const isCurrent = idx === 0;
+        const cycEndBal = cyc[cyc.length - 1].newBalance;
+        const cycSettled = Math.abs(cycEndBal) < 0.005;
+
+        let label = "";
+        if (isCurrent) {
+          label = cycSettled ? `Ciclo Actual (Saldado)` : `Ciclo Actual (Activo)`;
+        } else {
+          label = `Ciclo Histórico ${totalCycles - idx} (${cycSettled ? "Saldado" : "Cerrado"})`;
+        }
+
+        const activeClass = selectedCycleIndex === idx ? "active" : "";
+        navEl.innerHTML += `<button type="button" class="debt-cycle-btn ${activeClass}" onclick="selectDebtCycle(${idx})">${label} <small class="opacity-75">(${cyc.length})</small></button>`;
+      });
+
+      // Botón "Ver Todos"
+      const allActive = selectedCycleIndex === -1 ? "active" : "";
+      navEl.innerHTML += `<button type="button" class="debt-cycle-btn ${allActive}" onclick="selectDebtCycle(-1)"><i class="fa-solid fa-list me-1"></i>Ver Todos (${allTxs.length})</button>`;
     } else {
-      balanceEl.innerText = "Saldado: " + fmt.format(0);
-      balanceEl.classList.add("text-muted");
+      navEl.innerHTML = `<span class="badge bg-secondary-subtle text-secondary px-3 py-2 rounded-pill"><i class="fa-solid fa-clock-rotate-left me-1"></i>Ciclo Único de Movimientos (${allTxs.length})</span>`;
     }
   }
 
-  new bootstrap.Modal(modalEl).show();
+  // Obtener transacciones a mostrar y ordenarlas DESCENDENTE (más recientes arriba)
+  let displayTxs = [];
+  if (selectedCycleIndex === -1) {
+    displayTxs = [...allTxs].reverse();
+  } else if (cycles[selectedCycleIndex]) {
+    displayTxs = [...cycles[selectedCycleIndex]].reverse();
+  }
+
+  const tbody = document.getElementById("personHistoryBody");
+  if (tbody) {
+    tbody.innerHTML = "";
+
+    displayTxs.forEach((t) => {
+      const rowClass = t.isSettled ? "row-debt-settled" : "";
+
+      // Monto con saldo previo
+      const montoCol = `<div>
+        <span class="fw-bold ${t.color}">${fmt.format(t.amount)}</span>
+        <small class="tx-prev-balance">Deuda previa: ${fmt.format(Math.abs(t.prevBalance))}</small>
+      </div>`;
+
+      // Saldo resultante
+      let saldoResultCol = "";
+      if (t.isSettled) {
+        saldoResultCol = `<span class="badge-settled-white"><i class="fa-solid fa-circle-check text-success"></i>Saldada ($0.00)</span>`;
+      } else {
+        saldoResultCol = `<div>
+          <span class="fw-bold ${t.newBalance > 0 ? "text-success" : "text-danger"}">${fmt.format(Math.abs(t.newBalance))}</span>
+          <small class="text-muted d-block" style="font-size:0.68rem;">${t.newBalance > 0 ? "Te debe" : "Le debes"}</small>
+        </div>`;
+      }
+
+      tbody.innerHTML += `<tr class="${rowClass}">
+        <td class="ps-3"><small class="fw-bold">${t.date}</small></td>
+        <td>${t.typeBadge}</td>
+        <td class="small text-muted">${t.desc || "-"}</td>
+        <td class="text-end">${montoCol}</td>
+        <td class="text-end pe-3">${saldoResultCol}</td>
+      </tr>`;
+    });
+  }
+
+  // Footer balance y resumen
+  const balanceEl = document.getElementById("modalPersonBalance");
+  const summaryEl = document.getElementById("modalPersonCycleSummary");
+
+  if (balanceEl) {
+    balanceEl.className = "fw-bold fs-4";
+    if (currentTotalBal > 0.01) {
+      balanceEl.innerText = "Te debe: " + fmt.format(currentTotalBal);
+      balanceEl.classList.add("text-success");
+      if (summaryEl) summaryEl.innerText = `Cuenta activa con saldo pendiente a tu favor`;
+    } else if (currentTotalBal < -0.01) {
+      balanceEl.innerText = "Le debes: " + fmt.format(Math.abs(currentTotalBal));
+      balanceEl.classList.add("text-danger");
+      if (summaryEl) summaryEl.innerText = `Cuenta activa con saldo pendiente que debes saldar`;
+    } else {
+      balanceEl.innerText = "✅ Totalmente Saldado: $0.00";
+      balanceEl.classList.add("text-muted");
+      if (summaryEl) summaryEl.innerText = `Todas las deudas han sido saldadas en $0.00`;
+    }
+  }
 }
 
 // Exportar JSON
@@ -1036,8 +1292,10 @@ function applyPreferences() {
   const totalVisible = visibleCount + 1; // +1 for Patrimonio Neto
   const container = document.getElementById('tarjetas-container');
   if (container) {
-    container.classList.remove('layout-cols-6', 'layout-cols-5', 'layout-cols-4', 'layout-cols-3');
-    if (totalVisible >= 11) {
+    container.classList.remove('layout-cols-7', 'layout-cols-6', 'layout-cols-5', 'layout-cols-4', 'layout-cols-3');
+    if (totalVisible >= 13) {
+      container.classList.add('layout-cols-7');
+    } else if (totalVisible >= 11) {
       container.classList.add('layout-cols-6');
     } else if (totalVisible >= 9) {
       container.classList.add('layout-cols-5');
@@ -1066,6 +1324,56 @@ document.addEventListener('DOMContentLoaded', () => {
       summaryEnd.addEventListener("change", updateSummary);
       setSummaryPeriod('this_month');
     }
+
+    // Listeners para hint de comisión en tiempo real
+    const inputAmount = document.getElementById("inputAmount");
+    const inputCommission = document.getElementById("inputCommission");
+    const inputAccountTo = document.getElementById("inputAccountTo");
+    if (inputAmount) inputAmount.addEventListener("input", updateCommissionHint);
+    if (inputCommission) inputCommission.addEventListener("input", updateCommissionHint);
+    if (inputAccountTo) inputAccountTo.addEventListener("change", updateCommissionHint);
+
+    // Listener para cambiar ancho del layout según la pestaña activa
+    document.querySelectorAll('#mainTab button[data-bs-toggle="pill"]').forEach((btn) => {
+      btn.addEventListener('shown.bs.tab', (e) => {
+        const targetId = e.target.getAttribute('data-bs-target');
+        const colSidebar = document.getElementById("col-sidebar");
+        const colMain = document.getElementById("col-main-content");
+
+        if (targetId === "#tab-proyeccion") {
+          if (colSidebar) colSidebar.classList.add("d-none");
+          if (colMain) {
+            colMain.classList.remove("col-lg-8", "col-xl-9");
+            colMain.classList.add("col-12");
+          }
+          initProjectionTab();
+          if (projectionChart) {
+            setTimeout(() => {
+              projectionChart.resize();
+              projectionChart.update();
+            }, 50);
+          }
+        } else {
+          if (colSidebar) colSidebar.classList.remove("d-none");
+          if (colMain) {
+            colMain.classList.remove("col-12");
+            colMain.classList.add("col-lg-8", "col-xl-9");
+          }
+          if (assetsChart) {
+            setTimeout(() => {
+              assetsChart.resize();
+              assetsChart.update();
+            }, 50);
+          }
+          if (targetId === "#tab-resumen" && typeof updateSummary === "function") {
+            updateSummary();
+          }
+        }
+      });
+    });
+
+    // Inicializar proyección en background
+    initProjectionTab();
 });
 
 // --- EDIT LOGIC ---
@@ -1501,5 +1809,438 @@ function changePasswordLoggedIn() {
     }
   });
 }
+
+// =========================================================================
+// --- SIMULADOR DE PROYECCIÓN DE INVERSIONES & REGLA DEL 4% ---
+// =========================================================================
+
+let projectionChart = null;
+const PROJ_SETTINGS_KEY = "finanzas_projection_settings_v2";
+
+// Actualiza la visualización de saldo real y metadatos históricos de S&P 500 y NASDAQ
+function updateProjectionActualsDisplay(bal) {
+  if (!bal) bal = calculateBalances().bal;
+
+  const spBal = bal["SP500"] || 0;
+  const nasBal = bal["Nasdaq"] || 0;
+
+  // Actualizar displays principales de saldo actual
+  const spDisplay = document.getElementById("sp500RealBalDisplay");
+  const nasDisplay = document.getElementById("nasdaqRealBalDisplay");
+  if (spDisplay) spDisplay.innerText = fmt.format(spBal);
+  if (nasDisplay) nasDisplay.innerText = fmt.format(nasBal);
+
+  // Filtrar transacciones históricas de SP500 y Nasdaq
+  const spTxs = transactions
+    .filter((t) => (t.account === "SP500" || (t.type === "transfer_in" && t.account === "SP500")) && ["ingreso", "transfer_in"].includes(t.type))
+    .sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
+
+  const nasTxs = transactions
+    .filter((t) => (t.account === "Nasdaq" || (t.type === "transfer_in" && t.account === "Nasdaq")) && ["ingreso", "transfer_in"].includes(t.type))
+    .sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
+
+  // Badges y textos informativos S&P 500
+  const spCountEl = document.getElementById("sp500DepositsCountText");
+  const spBadgeEl = document.getElementById("sp500HistoryInfoBadge");
+  if (spCountEl) {
+    spCountEl.innerText = `${spTxs.length} ${spTxs.length === 1 ? "aporte registrado" : "aportes registrados"}`;
+  }
+  if (spBadgeEl) {
+    if (spTxs.length > 0) {
+      spBadgeEl.innerText = `Primer aporte: ${spTxs[0].date} (${fmt.format(spTxs[0].amount)})`;
+    } else {
+      spBadgeEl.innerText = "Sin aportes previos";
+    }
+  }
+
+  // Badges y textos informativos NASDAQ
+  const nasCountEl = document.getElementById("nasdaqDepositsCountText");
+  const nasBadgeEl = document.getElementById("nasdaqHistoryInfoBadge");
+  if (nasCountEl) {
+    nasCountEl.innerText = `${nasTxs.length} ${nasTxs.length === 1 ? "aporte registrado" : "aportes registrados"}`;
+  }
+  if (nasBadgeEl) {
+    if (nasTxs.length > 0) {
+      nasBadgeEl.innerText = `Primer aporte: ${nasTxs[0].date} (${fmt.format(nasTxs[0].amount)})`;
+    } else {
+      nasBadgeEl.innerText = "Sin aportes previos";
+    }
+  }
+}
+
+// Inicializa la pestaña de proyección
+function initProjectionTab() {
+  const { bal } = calculateBalances();
+  updateProjectionActualsDisplay(bal);
+
+  // Cargar configuración de aportes mensuales futuros y tasas guardadas
+  const saved = localStorage.getItem(PROJ_SETTINGS_KEY);
+  if (saved) {
+    try {
+      const s = JSON.parse(saved);
+      if (document.getElementById("sliderProjYears")) document.getElementById("sliderProjYears").value = s.years || 10;
+      if (document.getElementById("inputProjSP500Monthly")) document.getElementById("inputProjSP500Monthly").value = s.sp500Monthly !== undefined ? s.sp500Monthly : 300;
+      if (document.getElementById("sliderProjSP500Monthly")) document.getElementById("sliderProjSP500Monthly").value = s.sp500Monthly !== undefined ? s.sp500Monthly : 300;
+      if (document.getElementById("sliderProjSP500Rate")) document.getElementById("sliderProjSP500Rate").value = s.sp500Rate || 10.0;
+
+      if (document.getElementById("inputProjNasdaqMonthly")) document.getElementById("inputProjNasdaqMonthly").value = s.nasdaqMonthly !== undefined ? s.nasdaqMonthly : 300;
+      if (document.getElementById("sliderProjNasdaqMonthly")) document.getElementById("sliderProjNasdaqMonthly").value = s.nasdaqMonthly !== undefined ? s.nasdaqMonthly : 300;
+      if (document.getElementById("sliderProjNasdaqRate")) document.getElementById("sliderProjNasdaqRate").value = s.nasdaqRate || 12.5;
+    } catch (e) {
+      console.error("Error cargando configuración de proyección:", e);
+    }
+  }
+
+  onProjectionInputChange();
+}
+
+// Sincronizadores de inputs y sliders
+function syncSP500MonthlyInput(val) {
+  const slider = document.getElementById("sliderProjSP500Monthly");
+  if (slider) slider.value = Math.min(3000, Math.max(0, parseFloat(val) || 0));
+  onProjectionInputChange();
+}
+
+function syncSP500MonthlySlider(val) {
+  const input = document.getElementById("inputProjSP500Monthly");
+  if (input) input.value = val;
+  onProjectionInputChange();
+}
+
+function syncNasdaqMonthlyInput(val) {
+  const slider = document.getElementById("sliderProjNasdaqMonthly");
+  if (slider) slider.value = Math.min(3000, Math.max(0, parseFloat(val) || 0));
+  onProjectionInputChange();
+}
+
+function syncNasdaqMonthlySlider(val) {
+  const input = document.getElementById("inputProjNasdaqMonthly");
+  if (input) input.value = val;
+  onProjectionInputChange();
+}
+
+function setProjectionYears(years) {
+  const slider = document.getElementById("sliderProjYears");
+  if (slider) slider.value = years;
+  onProjectionInputChange();
+}
+
+// Función central de cálculo y renderizado de la simulación
+function onProjectionInputChange() {
+  const { bal } = calculateBalances();
+  updateProjectionActualsDisplay(bal);
+
+  // Capital base inicial tomado SIEMPRE en tiempo real de la base de datos
+  const sp500Init = Math.max(0, bal["SP500"] || 0);
+  const nasdaqInit = Math.max(0, bal["Nasdaq"] || 0);
+
+  const years = parseInt(document.getElementById("sliderProjYears")?.value) || 10;
+  const sp500Monthly = parseFloat(document.getElementById("inputProjSP500Monthly")?.value) || 0;
+  const sp500Rate = parseFloat(document.getElementById("sliderProjSP500Rate")?.value) || 10.0;
+
+  const nasdaqMonthly = parseFloat(document.getElementById("inputProjNasdaqMonthly")?.value) || 0;
+  const nasdaqRate = parseFloat(document.getElementById("sliderProjNasdaqRate")?.value) || 12.5;
+
+  // Actualizar labels visuales de los sliders
+  if (document.getElementById("lblProjYears")) {
+    document.getElementById("lblProjYears").innerText = `${years} ${years === 1 ? "Año" : "Años"}`;
+  }
+  if (document.getElementById("projYearsBadge")) {
+    document.getElementById("projYearsBadge").innerText = `${years} ${years === 1 ? "Año" : "Años"}`;
+  }
+
+  // Sincronizar tick labels de escala graduada
+  document.querySelectorAll(".slider-ticks span").forEach((span) => {
+    const y = parseInt(span.getAttribute("onclick")?.match(/\d+/)?.[0]);
+    if (y === years) {
+      span.style.color = "#8e54e9";
+      span.style.fontWeight = "800";
+    } else {
+      span.style.color = "";
+      span.style.fontWeight = "";
+    }
+  });
+
+  if (document.getElementById("lblProjSP500Monthly")) {
+    document.getElementById("lblProjSP500Monthly").innerText = fmt.format(sp500Monthly);
+  }
+  if (document.getElementById("lblProjSP500Rate")) {
+    document.getElementById("lblProjSP500Rate").innerText = `${sp500Rate.toFixed(1)}%`;
+  }
+  if (document.getElementById("lblProjNasdaqMonthly")) {
+    document.getElementById("lblProjNasdaqMonthly").innerText = fmt.format(nasdaqMonthly);
+  }
+  if (document.getElementById("lblProjNasdaqRate")) {
+    document.getElementById("lblProjNasdaqRate").innerText = `${nasdaqRate.toFixed(1)}%`;
+  }
+  if (document.getElementById("projChartTitle")) {
+    document.getElementById("projChartTitle").innerText = `Proyección a ${years} ${years === 1 ? "Año" : "Años"} (Interés Compuesto)`;
+  }
+
+  // Guardar configuración en localStorage (solo variables futuras)
+  const settingsToSave = {
+    years,
+    sp500Monthly,
+    sp500Rate,
+    nasdaqMonthly,
+    nasdaqRate,
+  };
+  localStorage.setItem(PROJ_SETTINGS_KEY, JSON.stringify(settingsToSave));
+
+  // --- CÁLCULO MES A MES (INTERÉS COMPUESTO) ---
+  const totalMonths = years * 12;
+  const monthlyRateSP = sp500Rate / 100 / 12;
+  const monthlyRateNas = nasdaqRate / 100 / 12;
+
+  let currentValSP = sp500Init;
+  let currentValNas = nasdaqInit;
+  let currentDeposited = sp500Init + nasdaqInit;
+
+  // Generar etiquetas y puntos para el gráfico
+  const labels = [];
+  const totalSeries = [];
+  const sp500Series = [];
+  const nasdaqSeries = [];
+  const depositedSeries = [];
+  const yearBreakdowns = [];
+
+  // Punto inicial (Mes 0 / Año 0)
+  labels.push("Inicio");
+  totalSeries.push(Math.round(currentValSP + currentValNas));
+  sp500Series.push(Math.round(currentValSP));
+  nasdaqSeries.push(Math.round(currentValNas));
+  depositedSeries.push(Math.round(currentDeposited));
+
+  for (let m = 1; m <= totalMonths; m++) {
+    // Rendimiento del mes + Aporte mensual
+    currentValSP = currentValSP * (1 + monthlyRateSP) + sp500Monthly;
+    currentValNas = currentValNas * (1 + monthlyRateNas) + nasdaqMonthly;
+    currentDeposited += (sp500Monthly + nasdaqMonthly);
+
+    // Guardar puntos clave para el gráfico (cada año, o cada mes si es <= 2 años)
+    const isYearEnd = m % 12 === 0;
+    const isShortHorizon = years <= 2;
+
+    if (isYearEnd || isShortHorizon) {
+      const yearNum = m / 12;
+      const labelText = isYearEnd ? `Año ${yearNum}` : `Mes ${m}`;
+      labels.push(labelText);
+      totalSeries.push(Math.round(currentValSP + currentValNas));
+      sp500Series.push(Math.round(currentValSP));
+      nasdaqSeries.push(Math.round(currentValNas));
+      depositedSeries.push(Math.round(currentDeposited));
+    }
+
+    if (isYearEnd) {
+      const currentTotal = currentValSP + currentValNas;
+      const annual4Pct = currentTotal * 0.04;
+      const monthly4Pct = annual4Pct / 12;
+      yearBreakdowns.push({
+        year: m / 12,
+        deposited: currentDeposited,
+        sp500: currentValSP,
+        nasdaq: currentValNas,
+        total: currentTotal,
+        monthlyPension: monthly4Pct,
+      });
+    }
+  }
+
+  // --- MÉTRICAS FINALES (KPIS) ---
+  const finalTotal = currentValSP + currentValNas;
+  const finalDeposited = currentDeposited;
+  const finalInterest = Math.max(0, finalTotal - finalDeposited);
+  const interestPercent = finalDeposited > 0 ? ((finalInterest / finalDeposited) * 100).toFixed(1) : 0;
+  const multiplier = finalDeposited > 0 ? (finalTotal / finalDeposited).toFixed(2) : "1.00";
+
+  // Actualizar DOM KPIs
+  if (document.getElementById("projDeposited")) {
+    document.getElementById("projDeposited").innerText = fmt.format(finalDeposited);
+  }
+  if (document.getElementById("projInterest")) {
+    document.getElementById("projInterest").innerText = fmt.format(finalInterest);
+  }
+  if (document.getElementById("projInterestPercent")) {
+    document.getElementById("projInterestPercent").innerText = `+${interestPercent}% de ganancia`;
+  }
+  if (document.getElementById("projTotalFinal")) {
+    document.getElementById("projTotalFinal").innerText = fmt.format(finalTotal);
+  }
+  if (document.getElementById("projMultiplier")) {
+    document.getElementById("projMultiplier").innerText = `${multiplier}x`;
+  }
+
+  // --- REGLA DEL 4% (RETIRO SEGURO / JUBILACIÓN) ---
+  const safeAnnualWithdrawal = finalTotal * 0.04;
+  const safeMonthlyWithdrawal = safeAnnualWithdrawal / 12;
+  const intactCapital = finalTotal * 0.96;
+
+  if (document.getElementById("projMonthlyPension")) {
+    document.getElementById("projMonthlyPension").innerText = `${fmt.format(safeMonthlyWithdrawal)} / mes`;
+  }
+  if (document.getElementById("projAnnualPension")) {
+    document.getElementById("projAnnualPension").innerText = `${fmt.format(safeAnnualWithdrawal)} / año`;
+  }
+  if (document.getElementById("projIntactCapital")) {
+    document.getElementById("projIntactCapital").innerText = fmt.format(intactCapital);
+  }
+
+  // --- RENDERIZAR TABLA DE EVOLUCIÓN ---
+  const evolutionTbody = document.getElementById("projEvolutionTableBody");
+  if (evolutionTbody) {
+    evolutionTbody.innerHTML = "";
+    yearBreakdowns.forEach((row) => {
+      evolutionTbody.innerHTML += `
+        <tr>
+          <td class="ps-3 fw-bold">Año ${row.year}</td>
+          <td class="text-end text-muted">${fmt.format(row.deposited)}</td>
+          <td class="text-end text-success">${fmt.format(row.sp500)}</td>
+          <td class="text-end text-primary">${fmt.format(row.nasdaq)}</td>
+          <td class="text-end fw-bold">${fmt.format(row.total)}</td>
+          <td class="text-end fw-bold text-success pe-3">${fmt.format(row.monthlyPension)} / mes</td>
+        </tr>
+      `;
+    });
+  }
+
+  // --- RENDERIZAR GRÁFICO ---
+  renderProjectionChart(labels, totalSeries, sp500Series, nasdaqSeries, depositedSeries);
+}
+
+// Renderiza el gráfico de Chart.js para la proyección
+function renderProjectionChart(labels, totalSeries, sp500Series, nasdaqSeries, depositedSeries) {
+  const canvas = document.getElementById("projectionChart");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  const isDark = document.body.classList.contains("dark-mode");
+  const textColor = isDark ? "#cbd5e1" : "#475569";
+  const gridColor = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)";
+
+  // Crear degradado suave para el área del Total
+  const gradientTotal = ctx.createLinearGradient(0, 0, 0, 300);
+  gradientTotal.addColorStop(0, isDark ? "rgba(168, 85, 247, 0.45)" : "rgba(142, 84, 233, 0.25)");
+  gradientTotal.addColorStop(1, "rgba(168, 85, 247, 0.0)");
+
+  const data = {
+    labels: labels,
+    datasets: [
+      {
+        label: "Total Portafolio",
+        data: totalSeries,
+        borderColor: "#a855f7",
+        backgroundColor: gradientTotal,
+        fill: true,
+        tension: 0.38,
+        borderWidth: 3.5,
+        pointRadius: labels.length > 20 ? 1 : 3.5,
+        pointHoverRadius: 6,
+        pointBackgroundColor: "#a855f7",
+      },
+      {
+        label: "S&P 500",
+        data: sp500Series,
+        borderColor: "#10b981",
+        backgroundColor: "transparent",
+        fill: false,
+        tension: 0.38,
+        borderWidth: 2.2,
+        pointRadius: labels.length > 20 ? 0 : 2.5,
+        pointHoverRadius: 5,
+        pointBackgroundColor: "#10b981",
+      },
+      {
+        label: "NASDAQ-100",
+        data: nasdaqSeries,
+        borderColor: "#38bdf8",
+        backgroundColor: "transparent",
+        fill: false,
+        tension: 0.38,
+        borderWidth: 2.2,
+        pointRadius: labels.length > 20 ? 0 : 2.5,
+        pointHoverRadius: 5,
+        pointBackgroundColor: "#38bdf8",
+      },
+      {
+        label: "Capital Depositado (Base)",
+        data: depositedSeries,
+        borderColor: "#94a3b8",
+        backgroundColor: "transparent",
+        fill: false,
+        borderDash: [6, 6],
+        tension: 0,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointBackgroundColor: "#94a3b8",
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: "index",
+      intersect: false,
+    },
+    plugins: {
+      legend: {
+        position: "top",
+        labels: {
+          color: textColor,
+          boxWidth: 12,
+          usePointStyle: true,
+          font: { size: 11, weight: "600" },
+        },
+      },
+      tooltip: {
+        backgroundColor: isDark ? "#1e293b" : "#ffffff",
+        titleColor: isDark ? "#ffffff" : "#0f172a",
+        bodyColor: isDark ? "#cbd5e1" : "#334155",
+        borderColor: isDark ? "#475569" : "#e2e8f0",
+        borderWidth: 1,
+        padding: 12,
+        boxPadding: 6,
+        callbacks: {
+          label: function (context) {
+            return ` ${context.dataset.label}: ${fmt.format(context.parsed.y)}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: gridColor },
+        ticks: { color: textColor, font: { size: 10 } },
+      },
+      y: {
+        grid: { color: gridColor },
+        ticks: {
+          color: textColor,
+          font: { size: 10 },
+          callback: function (val) {
+            if (val >= 1000000) return "$" + (val / 1000000).toFixed(1) + "M";
+            if (val >= 1000) return "$" + (val / 1000).toFixed(0) + "k";
+            return "$" + val;
+          },
+        },
+      },
+    },
+  };
+
+  if (projectionChart) {
+    projectionChart.data = data;
+    projectionChart.options = options;
+    projectionChart.update();
+  } else {
+    projectionChart = new Chart(ctx, {
+      type: "line",
+      data: data,
+      options: options,
+    });
+  }
+}
+
 
 

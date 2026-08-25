@@ -54,11 +54,12 @@ body.dark-mode .card-header {
   color: var(--text-main);
 }
 
-/* --- MÁRGENES MÁS GRANDES --- */
+/* --- MÁRGENES MÁS GRANDES & MAYOR APROVECHAMIENTO --- */
 .main-wrapper {
-  width: 90%; /* Ajuste para que no toque los bordes */
-  max-width: 1600px;
-  margin: 0 auto;
+  width: 95%;
+  max-width: 1750px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Responsive: 5 columnas en XL */
@@ -370,7 +371,377 @@ body.dark-mode .table-striped > tbody > tr:nth-of-type(odd) > * {
   color: white;
 }
 
+.bg-sp500 {
+  background: linear-gradient(135deg, #003314 0%, #006400 50%, #00a651 100%);
+  color: white;
+}
+
+.bg-nasdaq {
+  background: linear-gradient(135deg, #0a0e27 0%, #1a237e 50%, #283593 100%);
+  color: white;
+}
+
+/* Balance previo en tabla */
+.tx-prev-balance {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: block;
+  letter-spacing: 0.2px;
+}
+
+/* --- EFECTOS HOLOGRÁFICOS & MODERN GLASSMORPHISM --- */
+.account-card .card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s ease;
+}
+.account-card .card:hover {
+  transform: translateY(-4px) scale(1.015);
+  box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.45);
+}
+.account-card .card::after {
+  content: "";
+  position: absolute;
+  top: -60%;
+  left: -60%;
+  width: 220%;
+  height: 220%;
+  background: linear-gradient(60deg, transparent 30%, rgba(255, 255, 255, 0.18) 50%, transparent 70%);
+  transform: rotate(25deg) translateY(-100%);
+  transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+.account-card .card:hover::after {
+  transform: rotate(25deg) translateY(100%);
+}
+
+/* Transición suave para cambio de vista de columnas */
+#col-sidebar, #col-main-content {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- ESTILOS SIMULADOR DE PROYECCIÓN & REGLA DEL 4% --- */
+.proj-horizon-card {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.3s ease;
+}
+body.dark-mode .proj-horizon-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1px solid rgba(142, 84, 233, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.slider-ticks {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  user-select: none;
+  padding: 0 4px;
+}
+.slider-ticks span {
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+.slider-ticks span:hover {
+  color: #8e54e9;
+  background: rgba(142, 84, 233, 0.15);
+}
+
+/* --- DEUDAS MODAL, CICLOS & SALDADO EN BLANCO --- */
+.debt-cycle-btn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 4px 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text-main);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.debt-cycle-btn:hover {
+  border-color: #8e54e9;
+  color: #8e54e9;
+}
+.debt-cycle-btn.active {
+  background: linear-gradient(135deg, #8e54e9 0%, #6366f1 100%) !important;
+  border-color: #8e54e9 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(142, 84, 233, 0.4);
+}
+
+.row-debt-settled {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-left: 4px solid #10b981 !important;
+}
+body:not(.dark-mode) .row-debt-settled {
+  background: #f0fdf4 !important;
+  border-left: 4px solid #10b981 !important;
+}
+
+.badge-settled-white {
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 0.68rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Custom Sliders */
+.slider-custom {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 6px;
+  outline: none;
+  transition: background 0.2s;
+  background: #e2e8f0;
+}
+body.dark-mode .slider-custom {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.slider-years::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #8e54e9;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(142, 84, 233, 0.7);
+  border: 2px solid #ffffff;
+  transition: transform 0.15s ease;
+}
+.slider-years::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.slider-sp500::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #10b981;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.7);
+  border: 2px solid #ffffff;
+  transition: transform 0.15s ease;
+}
+.slider-sp500::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.slider-nasdaq::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #38bdf8;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.7);
+  border: 2px solid #ffffff;
+  transition: transform 0.15s ease;
+}
+.slider-nasdaq::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Tarjeta Jubilación / Regla del 4% (Holographic Cyberpunk) */
+.card-retirement {
+  background: linear-gradient(135deg, #091322 0%, #0d1e33 50%, #082938 100%);
+  color: #f8fafc;
+  border-radius: 18px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(0, 240, 168, 0.35);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4), 0 0 25px rgba(0, 240, 168, 0.12);
+}
+.card-retirement::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(0, 240, 168, 0.25) 0%, rgba(56, 189, 248, 0.1) 40%, rgba(0, 0, 0, 0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.salary-number {
+  font-size: 2.7rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #00f0a8 0%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(0, 240, 168, 0.35);
+}
+
+/* Paneles S&P 500 y NASDAQ */
+.inv-panel-sp500 {
+  background: var(--card-bg);
+  border: 1.5px solid rgba(16, 185, 129, 0.35);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.3s ease;
+}
+body.dark-mode .inv-panel-sp500 {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.inv-panel-sp500:hover {
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+.inv-panel-nasdaq {
+  background: var(--card-bg);
+  border: 1.5px solid rgba(56, 189, 248, 0.35);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.3s ease;
+}
+body.dark-mode .inv-panel-nasdaq {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.inv-panel-nasdaq:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+}
+
+.badge-sp500-tag {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+.badge-nasdaq-tag {
+  background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+}
+
+/* KPI Cards con Degradados Vívidos y Modernos */
+.kpi-proj-card {
+  border-radius: 16px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.kpi-proj-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.35);
+}
+
+.kpi-proj-card.kpi-deposited {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.3);
+}
+.kpi-proj-card.kpi-deposited h4 {
+  color: #f8fafc !important;
+  font-weight: 800;
+}
+.kpi-proj-card.kpi-deposited small {
+  color: #cbd5e1 !important;
+}
+
+.kpi-proj-card.kpi-interest {
+  background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%);
+  border-color: rgba(52, 211, 153, 0.5);
+  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.35);
+}
+.kpi-proj-card.kpi-interest h4 {
+  color: #a7f3d0 !important;
+  font-weight: 800;
+  text-shadow: 0 0 15px rgba(52, 211, 153, 0.4);
+}
+.kpi-proj-card.kpi-interest small {
+  color: #d1fae5 !important;
+}
+
+.kpi-proj-card.kpi-total {
+  background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 50%, #7c3aed 100%);
+  border-color: rgba(192, 132, 252, 0.5);
+  box-shadow: 0 8px 24px rgba(109, 40, 217, 0.35);
+}
+.kpi-proj-card.kpi-total h4 {
+  color: #f3e8ff !important;
+  font-weight: 800;
+  text-shadow: 0 0 15px rgba(192, 132, 252, 0.4);
+}
+.kpi-proj-card.kpi-total small {
+  color: #e9d5ff !important;
+}
+
+.kpi-proj-card.kpi-multiplier {
+  background: linear-gradient(135deg, #78350f 0%, #b45309 50%, #d97706 100%);
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow: 0 8px 24px rgba(217, 119, 6, 0.35);
+}
+.kpi-proj-card.kpi-multiplier h4 {
+  color: #fef08a !important;
+  font-weight: 800;
+  text-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+}
+.kpi-proj-card.kpi-multiplier small {
+  color: #fde68a !important;
+}
+
+.kpi-icon-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  backdrop-filter: blur(8px);
+}
+
+/* Tarjetas en Grid */
+#tarjetas-container .card-body {
+  padding: 0.85rem 0.8rem;
+}
+#tarjetas-container .card h6 {
+  font-size: 0.68rem;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#tarjetas-container .card h4 {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
 @media (min-width: 1200px) {
+  #tarjetas-container.layout-cols-7 > .col-xl-2 {
+    flex: 0 0 14.285714% !important;
+    max-width: 14.285714% !important;
+  }
   #tarjetas-container.layout-cols-6 > .col-xl-2 {
     flex: 0 0 16.666667% !important;
     max-width: 16.666667% !important;

@@ -149,7 +149,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Pichincha">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Pichincha" onclick="filterByAccount('Pichincha')" style="cursor:pointer">
           <div class="card bg-pichincha h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -165,7 +165,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="DeUna">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="DeUna" onclick="filterByAccount('DeUna')" style="cursor:pointer">
           <div class="card bg-deuna h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -181,7 +181,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Guayaquil">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Guayaquil" onclick="filterByAccount('Guayaquil')" style="cursor:pointer">
           <div class="card bg-guayaquil h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -197,7 +197,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="PeiGo">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="PeiGo" onclick="filterByAccount('PeiGo')" style="cursor:pointer">
           <div class="card bg-peigo h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -214,7 +214,7 @@
         </div>
 
         <!-- Fila 2: 6 bancos más -->
-        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Produbanco">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Produbanco" onclick="filterByAccount('Produbanco')" style="cursor:pointer">
           <div class="card bg-produbanco text-white h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -230,7 +230,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Binance">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Binance" onclick="filterByAccount('Binance')" style="cursor:pointer">
           <div class="card bg-binance h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -246,7 +246,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="UglyCash">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="UglyCash" onclick="filterByAccount('UglyCash')" style="cursor:pointer">
           <div class="card bg-ugly h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -262,7 +262,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Airtm">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Airtm" onclick="filterByAccount('Airtm')" style="cursor:pointer">
           <div class="card bg-airtm text-white h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -278,7 +278,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Efectivo">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Efectivo" onclick="filterByAccount('Efectivo')" style="cursor:pointer">
           <div class="card bg-efectivo text-white h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -294,7 +294,7 @@
           </div>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Morse">
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Morse" onclick="filterByAccount('Morse')" style="cursor:pointer">
           <div class="card bg-morse text-white h-100 border-0">
             <div class="card-body position-relative p-4">
               <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
@@ -306,6 +306,32 @@
                 class="card-logo-img"
                 onerror="this.style.display = 'none'"
               />
+            </div>
+          </div>
+        </div>
+
+        <!-- S&P 500 -->
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="SP500" onclick="filterByAccount('SP500')" style="cursor:pointer">
+          <div class="card bg-sp500 text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                S&amp;P 500
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblSP500">$0.00</h3>
+              <i class="fa-solid fa-chart-line card-icon-bg"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- NASDAQ -->
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Nasdaq" onclick="filterByAccount('Nasdaq')" style="cursor:pointer">
+          <div class="card bg-nasdaq text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                NASDAQ
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblNasdaq">$0.00</h3>
+              <i class="fa-solid fa-arrow-trend-up card-icon-bg"></i>
             </div>
           </div>
         </div>
@@ -326,7 +352,7 @@
       <!-- MAIN CONTENT -->
       <div class="row g-4">
         <!-- COLUMNA IZQUIERDA (Formulario + Gráfico) -->
-        <div class="col-lg-4 col-xl-3">
+        <div class="col-lg-4 col-xl-3" id="col-sidebar">
           <!-- 1. Formulario -->
           <div class="card card-custom mb-4 border-0">
             <div
@@ -398,8 +424,10 @@
                     <option value="DeUna">DeUna!</option>
                     <option value="Morse">Morse</option>
                     <option value="Efectivo">Efectivo</option>
+                    <option value="Nasdaq">NASDAQ</option>
                     <option value="PeiGo">PeiGo</option>
                     <option value="Produbanco">Produbanco</option>
+                    <option value="SP500">S&amp;P 500</option>
                     <option value="UglyCash">Ugly Cash</option>
                   </select>
                 </div>
@@ -417,11 +445,27 @@
                     <option value="DeUna">DeUna!</option>
                     <option value="Morse">Morse</option>
                     <option value="Efectivo">Efectivo</option>
+                    <option value="Nasdaq">NASDAQ</option>
                     <option value="PeiGo">PeiGo</option>
                     <option value="Produbanco">Produbanco</option>
+                    <option value="SP500">S&amp;P 500</option>
                     <option value="UglyCash">Ugly Cash</option>
                   </select>
                 </div>
+                <!-- COMISIÓN (solo visible en transferencias) -->
+                <div class="mb-3 d-none" id="groupCommission">
+                  <label class="form-label small fw-bold text-muted">Comisión (opcional)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="form-control filled-input"
+                    id="inputCommission"
+                    placeholder="0.00"
+                  />
+                  <div class="form-text" id="commissionHint" style="font-size:0.75rem;"></div>
+                </div>
+
                 <div class="mb-3 d-none" id="groupPerson">
                   <label class="form-label small fw-bold text-muted"
                     >Persona</label
@@ -496,7 +540,7 @@
         </div>
 
         <!-- COLUMNA DERECHA (Tablas ocupando toda la altura) -->
-        <div class="col-lg-8 col-xl-9">
+        <div class="col-lg-8 col-xl-9" id="col-main-content">
           <div class="card card-custom border-0 h-100">
             <div class="card-header bg-transparent border-bottom p-3">
               <ul
@@ -531,6 +575,16 @@
                     <i class="fa-solid fa-chart-pie me-2"></i>Resumen
                   </button>
                 </li>
+                <li class="nav-item">
+                  <button
+                    class="nav-link fw-bold"
+                    data-bs-toggle="pill"
+                    data-bs-target="#tab-proyeccion"
+                    id="tabBtnProyeccion"
+                  >
+                    <i class="fa-solid fa-arrow-trend-up me-2"></i>Proyección
+                  </button>
+                </li>
               </ul>
             </div>
 
@@ -556,10 +610,12 @@
                       <option value="Pichincha">Banco Pichincha</option>
                       <option value="Binance">Binance</option>
                       <option value="DeUna">DeUna!</option>
-                    <option value="Morse">Morse</option>
+                      <option value="Morse">Morse</option>
                       <option value="Efectivo">Efectivo</option>
+                      <option value="Nasdaq">NASDAQ</option>
                       <option value="PeiGo">PeiGo</option>
                       <option value="Produbanco">Produbanco</option>
+                      <option value="SP500">S&amp;P 500</option>
                       <option value="UglyCash">Ugly Cash</option>
                     </select>
                   </div>
@@ -657,6 +713,8 @@
                         <option value="Efectivo">Efectivo</option>
                         <option value="Airtm">Airtm</option>
                         <option value="Morse">Morse</option>
+                        <option value="SP500">S&amp;P 500</option>
+                        <option value="Nasdaq">NASDAQ</option>
                       </select>
                     </div>
                     <div class="col-md-3 d-flex gap-2 justify-content-end">
@@ -762,6 +820,276 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- TABLA PROYECCIÓN & REGLA DEL 4% -->
+                <div class="tab-pane fade p-4" id="tab-proyeccion">
+                  <!-- ENCABEZADO Y DETECCIÓN AUTOMÁTICA -->
+                  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2 pb-3 border-bottom border-secondary border-opacity-10">
+                    <div>
+                      <h5 class="fw-bold mb-1 d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-primary"></i>
+                        Simulador de Proyección &amp; Libertad Financiera
+                      </h5>
+                      <p class="text-muted small mb-0">
+                        Punto de partida calculado automáticamente de tus inversiones reales. Modifica tus aportes a futuro y visualiza el crecimiento en tiempo real.
+                      </p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-3 py-2 rounded-pill shadow-sm">
+                        <i class="fa-solid fa-circle-check me-1 text-success"></i>Sincronizado en tiempo real con tu base de datos
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- LAYOUT DE 2 COLUMNAS (CONTROLES A LA IZQUIERDA, RESULTADOS Y GRÁFICO A LA DERECHA) -->
+                  <div class="row g-4 align-items-start">
+                    
+                    <!-- COLUMNA IZQUIERDA: VARIABLES & CONTROLES (COMPACTA) -->
+                    <div class="col-12 col-lg-4 col-xl-4">
+                      <!-- HORIZONTE DE TIEMPO (SLIDER PRINCIPAL CON ESCALA GRADUADA) -->
+                      <div class="proj-horizon-card mb-4 p-3 p-xl-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                          <label class="form-label fw-bold mb-0 small text-uppercase text-muted">
+                            <i class="fa-solid fa-hourglass-half me-2 text-primary"></i>Horizonte de Tiempo:
+                          </label>
+                          <span class="badge bg-primary fs-6 px-3 py-1 rounded-pill shadow-sm" id="lblProjYears">10 Años</span>
+                        </div>
+                        <input type="range" class="slider-custom slider-years w-100" id="sliderProjYears" min="1" max="40" step="1" value="10" oninput="onProjectionInputChange()">
+                        <div class="d-flex justify-content-between mt-2 slider-ticks">
+                          <span role="button" title="1 Año" onclick="setProjectionYears(1)">1a</span>
+                          <span role="button" title="5 Años" onclick="setProjectionYears(5)">5a</span>
+                          <span role="button" title="10 Años" onclick="setProjectionYears(10)">10a</span>
+                          <span role="button" title="15 Años" onclick="setProjectionYears(15)">15a</span>
+                          <span role="button" title="20 Años" onclick="setProjectionYears(20)">20a</span>
+                          <span role="button" title="30 Años" onclick="setProjectionYears(30)">30a</span>
+                          <span role="button" title="40 Años" onclick="setProjectionYears(40)">40a</span>
+                        </div>
+                      </div>
+
+                      <!-- PANEL S&P 500 -->
+                      <div class="p-3 p-xl-4 inv-panel-sp500 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                          <span class="badge badge-sp500-tag px-3 py-2 rounded-pill">
+                            <i class="fa-solid fa-chart-line me-1"></i>S&amp;P 500
+                          </span>
+                          <span class="badge bg-success-subtle text-success border border-success border-opacity-25 small" id="sp500HistoryInfoBadge">Punto de partida</span>
+                        </div>
+
+                        <!-- CAPITAL ACTUAL DETECTADO DE LA BASE DE DATOS -->
+                        <div class="p-3 mb-3 rounded-3" style="background: rgba(16, 185, 129, 0.08); border: 1.5px dashed rgba(16, 185, 129, 0.35);">
+                          <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                              <small class="text-muted text-uppercase fw-bold d-block" style="font-size:0.7rem;">Capital Actual Invertido (Base)</small>
+                              <h4 class="fw-bold text-success mb-0" id="sp500RealBalDisplay">$0.00</h4>
+                            </div>
+                            <small class="text-muted text-end small" id="sp500DepositsCountText">0 aportes registrados</small>
+                          </div>
+                        </div>
+
+                        <div class="mb-3">
+                          <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold text-muted mb-0">Aporte Mensual Futuro ($)</label>
+                            <span class="fw-bold text-success" id="lblProjSP500Monthly">$300.00</span>
+                          </div>
+                          <input type="number" step="10" min="0" class="form-control filled-input fw-bold mb-2" id="inputProjSP500Monthly" value="300" oninput="syncSP500MonthlyInput(this.value)">
+                          <input type="range" class="slider-custom slider-sp500 w-100" id="sliderProjSP500Monthly" min="0" max="3000" step="25" value="300" oninput="syncSP500MonthlySlider(this.value)">
+                        </div>
+
+                        <div class="mb-1">
+                          <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold text-muted mb-0">Rendimiento Anual Estimado (%)</label>
+                            <span class="fw-bold text-success" id="lblProjSP500Rate">10.0%</span>
+                          </div>
+                          <input type="range" class="slider-custom slider-sp500 w-100" id="sliderProjSP500Rate" min="4" max="25" step="0.5" value="10.0" oninput="onProjectionInputChange()">
+                          <small class="text-muted d-block mt-2" style="font-size:0.72rem;">
+                            *Promedio histórico a largo plazo del S&amp;P 500 es ~10.0% anual.
+                          </small>
+                        </div>
+                      </div>
+
+                      <!-- PANEL NASDAQ -->
+                      <div class="p-3 p-xl-4 inv-panel-nasdaq mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                          <span class="badge badge-nasdaq-tag px-3 py-2 rounded-pill">
+                            <i class="fa-solid fa-arrow-trend-up me-1"></i>NASDAQ-100
+                          </span>
+                          <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 small" id="nasdaqHistoryInfoBadge">Punto de partida</span>
+                        </div>
+
+                        <!-- CAPITAL ACTUAL DETECTADO DE LA BASE DE DATOS -->
+                        <div class="p-3 mb-3 rounded-3" style="background: rgba(56, 189, 248, 0.08); border: 1.5px dashed rgba(56, 189, 248, 0.35);">
+                          <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                              <small class="text-muted text-uppercase fw-bold d-block" style="font-size:0.7rem;">Capital Actual Invertido (Base)</small>
+                              <h4 class="fw-bold text-info mb-0" id="nasdaqRealBalDisplay">$0.00</h4>
+                            </div>
+                            <small class="text-muted text-end small" id="nasdaqDepositsCountText">0 aportes registrados</small>
+                          </div>
+                        </div>
+
+                        <div class="mb-3">
+                          <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold text-muted mb-0">Aporte Mensual Futuro ($)</label>
+                            <span class="fw-bold text-info" id="lblProjNasdaqMonthly">$300.00</span>
+                          </div>
+                          <input type="number" step="10" min="0" class="form-control filled-input fw-bold mb-2" id="inputProjNasdaqMonthly" value="300" oninput="syncNasdaqMonthlyInput(this.value)">
+                          <input type="range" class="slider-custom slider-nasdaq w-100" id="sliderProjNasdaqMonthly" min="0" max="3000" step="25" value="300" oninput="syncNasdaqMonthlySlider(this.value)">
+                        </div>
+
+                        <div class="mb-1">
+                          <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold text-muted mb-0">Rendimiento Anual Estimado (%)</label>
+                            <span class="fw-bold text-info" id="lblProjNasdaqRate">12.5%</span>
+                          </div>
+                          <input type="range" class="slider-custom slider-nasdaq w-100" id="sliderProjNasdaqRate" min="4" max="30" step="0.5" value="12.5" oninput="onProjectionInputChange()">
+                          <small class="text-muted d-block mt-2" style="font-size:0.72rem;">
+                            *Promedio histórico de 30 años del NASDAQ es ~12.9% anual.
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- COLUMNA DERECHA: RESULTADOS, JUBILACIÓN & GRÁFICO (AMPLIA) -->
+                    <div class="col-12 col-lg-8 col-xl-8">
+                      
+                      <!-- TARJETAS DE INDICADORES (KPIS) -->
+                      <div class="row g-3 mb-4">
+                        <div class="col-6 col-sm-3">
+                          <div class="card kpi-proj-card kpi-deposited shadow-sm p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <small class="text-muted text-uppercase fw-bold" style="font-size:0.68rem;">Capital Depositado</small>
+                              <div class="kpi-icon-badge" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8;">
+                                <i class="fa-solid fa-vault"></i>
+                              </div>
+                            </div>
+                            <h4 class="fw-bold mt-1 mb-0 text-secondary" id="projDeposited">$0.00</h4>
+                            <small class="text-muted mt-1" style="font-size:0.72rem;">Tu propio dinero invertido</small>
+                          </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                          <div class="card kpi-proj-card kpi-interest shadow-sm p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <small class="text-muted text-uppercase fw-bold" style="font-size:0.68rem;">Ganancia Interés</small>
+                              <div class="kpi-icon-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                                <i class="fa-solid fa-chart-line"></i>
+                              </div>
+                            </div>
+                            <h4 class="fw-bold mt-1 mb-0 text-success" id="projInterest">$0.00</h4>
+                            <small class="text-success mt-1 fw-bold" id="projInterestPercent" style="font-size:0.72rem;">+0.0% generado</small>
+                          </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                          <div class="card kpi-proj-card kpi-total shadow-sm p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <small class="text-muted text-uppercase fw-bold" style="font-size:0.68rem;">Valor Total Final</small>
+                              <div class="kpi-icon-badge" style="background: rgba(168, 85, 247, 0.15); color: #a855f7;">
+                                <i class="fa-solid fa-sack-dollar"></i>
+                              </div>
+                            </div>
+                            <h4 class="fw-bold mt-1 mb-0 text-primary" id="projTotalFinal">$0.00</h4>
+                            <small class="text-muted mt-1" style="font-size:0.72rem;">Capital + Rendimientos</small>
+                          </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                          <div class="card kpi-proj-card kpi-multiplier shadow-sm p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <small class="text-muted text-uppercase fw-bold" style="font-size:0.68rem;">Multiplicador</small>
+                              <div class="kpi-icon-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                                <i class="fa-solid fa-bolt"></i>
+                              </div>
+                            </div>
+                            <h4 class="fw-bold mt-1 mb-0 text-warning" id="projMultiplier">1.0x</h4>
+                            <small class="text-muted mt-1" style="font-size:0.72rem;">Crecimiento total</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- TARJETA DESTACADA: REGLA DEL 4% (SUELDO DE JUBILACIÓN) -->
+                      <div class="card card-retirement p-4 mb-4 shadow border-0">
+                        <div class="row align-items-center g-4">
+                          <div class="col-xl-7 col-lg-12">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                              <span class="badge bg-success text-white px-2 py-1 rounded-pill small">
+                                <i class="fa-solid fa-umbrella-beach me-1"></i>Regla del 4%
+                              </span>
+                              <span class="text-white-50 small">Jubilación / Libertad Financiera</span>
+                            </div>
+                            <h6 class="text-uppercase text-white-50 small fw-bold mb-1">
+                              Tu Sueldo Mensual Vitalicio Estimado:
+                            </h6>
+                            <div class="salary-number mb-2" id="projMonthlyPension">$0.00 / mes</div>
+                            <p class="text-white-50 small mb-0" style="max-width: 520px; line-height: 1.5;">
+                              Si retiras el <strong>4% anual</strong> de tu portafolio acumulado (dividido en 12 meses), puedes vivir de tus rendimientos <strong>sin agotar tu capital</strong>, ya que la bolsa rinde más del 4% en promedio.
+                            </p>
+                          </div>
+                          <div class="col-xl-5 col-lg-12 border-start-xl border-white border-opacity-10 ps-xl-4 pt-3 pt-xl-0 border-top border-top-xl-0">
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-white border-opacity-10">
+                              <span class="text-white-50 small"><i class="fa-solid fa-calendar-check me-2 text-success"></i>Retiro Anual (4%):</span>
+                              <span class="fw-bold text-white fs-6" id="projAnnualPension">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-white border-opacity-10">
+                              <span class="text-white-50 small"><i class="fa-solid fa-shield-halved me-2 text-info"></i>Capital Intacto (96%):</span>
+                              <span class="fw-bold text-white fs-6" id="projIntactCapital">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                              <span class="text-white-50 small"><i class="fa-solid fa-hourglass-end me-2 text-warning"></i>Horizonte:</span>
+                              <span class="fw-bold text-info fs-6" id="projYearsBadge">10 Años</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- GRÁFICO DE PROYECCIÓN -->
+                      <div class="card card-custom border-0 shadow-sm p-3 mb-4">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                          <div>
+                            <h6 class="fw-bold text-muted small text-uppercase mb-0" id="projChartTitle">
+                              Curva de Crecimiento Compuesto
+                            </h6>
+                            <small class="text-muted" style="font-size:0.75rem;">
+                              El interés compuesto se acelera exponencialmente con el tiempo.
+                            </small>
+                          </div>
+                        </div>
+                        <div style="height: 340px; position: relative;">
+                          <canvas id="projectionChart"></canvas>
+                        </div>
+                      </div>
+
+                      <!-- TABLA DE EVOLUCIÓN AÑO POR AÑO (COLAPSABLE) -->
+                      <div class="accordion border-0 shadow-sm rounded-3 overflow-hidden mb-2" id="accordionEvolution">
+                        <div class="accordion-item border-0 card-custom">
+                          <h2 class="accordion-header" id="headingEvolution">
+                            <button class="accordion-button collapsed bg-transparent fw-bold small text-uppercase" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEvolution">
+                              <i class="fa-solid fa-table-list me-2 text-primary"></i>Ver desglose detallado año por año
+                            </button>
+                          </h2>
+                          <div id="collapseEvolution" class="accordion-collapse collapse" data-bs-parent="#accordionEvolution">
+                            <div class="accordion-body p-0">
+                              <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 custom-table">
+                                  <thead>
+                                    <tr>
+                                      <th class="ps-3">Año</th>
+                                      <th class="text-end">Capital Depositado</th>
+                                      <th class="text-end">S&amp;P 500</th>
+                                      <th class="text-end">NASDAQ</th>
+                                      <th class="text-end">Total Portafolio</th>
+                                      <th class="text-end text-success pe-3">Sueldo 4% (Mes)</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody id="projEvolutionTableBody">
+                                    <!-- Generado dinámicamente -->
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -786,8 +1114,11 @@
     <div class="modal fade" id="modalPersonHistory" tabindex="-1">
       <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content card-custom border-0 shadow-lg">
-          <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title fw-bold" id="modalPersonTitle">Historial</h5>
+          <div class="modal-header border-0 pb-2">
+            <div>
+              <h5 class="modal-title fw-bold mb-0" id="modalPersonTitle">Historial</h5>
+              <small class="text-muted" id="modalPersonSubtitle">Detalle de movimientos y ciclos de deuda</small>
+            </div>
             <button
               type="button"
               class="btn-close btn-close-custom"
@@ -795,14 +1126,18 @@
             ></button>
           </div>
           <div class="modal-body p-3">
+            <!-- NAVEGACIÓN POR CICLOS DE DEUDA (PÁGINAS INTELIGENTES) -->
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3" id="personHistoryCyclesNav"></div>
+
             <div class="table-responsive rounded-3 overflow-hidden border">
-              <table class="table table-striped mb-0 custom-table">
+              <table class="table table-hover mb-0 custom-table align-middle">
                 <thead class="bg-light">
                   <tr>
                     <th class="ps-3">Fecha</th>
                     <th>Movimiento</th>
                     <th>Nota</th>
-                    <th class="text-end pe-3">Monto</th>
+                    <th class="text-end">Monto</th>
+                    <th class="text-end pe-3">Saldo Deuda</th>
                   </tr>
                 </thead>
                 <tbody id="personHistoryBody"></tbody>
@@ -812,10 +1147,13 @@
           <div
             class="modal-footer justify-content-between border-0 pt-0 pb-3 px-3"
           >
-            <span class="text-muted small">Saldo total pendiente:</span>
-            <span class="fw-bold fs-4 text-primary" id="modalPersonBalance"
-              >$0.00</span
-            >
+            <div>
+              <span class="text-muted small d-block">Estado actual de la cuenta:</span>
+              <small class="text-muted" id="modalPersonCycleSummary"></small>
+            </div>
+            <div class="text-end">
+              <span class="fw-bold fs-4" id="modalPersonBalance">$0.00</span>
+            </div>
           </div>
         </div>
       </div>
