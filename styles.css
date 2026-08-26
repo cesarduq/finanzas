@@ -371,6 +371,12 @@ body.dark-mode .table-striped > tbody > tr:nth-of-type(odd) > * {
   color: white;
 }
 
+.bg-hapi {
+  background: linear-gradient(135deg, #1b0c36 0%, #3b1366 45%, #6d28d9 100%);
+  color: white;
+  border: 1px solid rgba(192, 132, 252, 0.25);
+}
+
 .bg-sp500 {
   background: linear-gradient(135deg, #003314 0%, #006400 50%, #00a651 100%);
   color: white;
@@ -379,6 +385,148 @@ body.dark-mode .table-striped > tbody > tr:nth-of-type(odd) > * {
 .bg-nasdaq {
   background: linear-gradient(135deg, #0a0e27 0%, #1a237e 50%, #283593 100%);
   color: white;
+}
+
+/* Hapi Investment Chips */
+.hapi-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.hapi-chip {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  padding: 4px 9px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #f8fafc;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.hapi-chip:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.hapi-chip.chip-sp500 {
+  border-left: 3px solid #10b981;
+}
+
+.hapi-chip.chip-sp500:hover {
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+}
+
+.hapi-chip.chip-nasdaq {
+  border-left: 3px solid #38bdf8;
+}
+
+.hapi-chip.chip-nasdaq:hover {
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+}
+
+.hapi-chip-val {
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.hapi-chip-pl {
+  font-size: 0.62rem;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 800;
+}
+
+.hapi-chip-pl.pl-pos {
+  background: rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+}
+
+.hapi-chip-pl.pl-neg {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+/* Investment Form Preview Box */
+.inv-preview-box {
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%);
+  border: 1.5px solid rgba(168, 85, 247, 0.35);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+
+body.dark-mode .inv-preview-box {
+  background: linear-gradient(135deg, rgba(30, 20, 50, 0.85) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border-color: rgba(192, 132, 252, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.inv-preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  margin-bottom: 4px;
+}
+
+.inv-preview-item:last-child {
+  margin-bottom: 0;
+}
+
+.inv-preview-highlight {
+  font-weight: 800;
+  color: #a855f7;
+}
+
+body.dark-mode .inv-preview-highlight {
+  color: #c084fc;
+}
+
+/* Live Market Tracker Header Badge */
+.live-ticker-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text-main);
+  transition: all 0.2s ease;
+}
+
+.live-ticker-badge:hover {
+  transform: translateY(-1px);
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: livePulse 2s infinite;
+}
+
+@keyframes livePulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 /* Balance previo en tabla */

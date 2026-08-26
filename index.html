@@ -310,28 +310,38 @@
           </div>
         </div>
 
-        <!-- S&P 500 -->
-        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="SP500" onclick="filterByAccount('SP500')" style="cursor:pointer">
-          <div class="card bg-sp500 text-white h-100 border-0">
-            <div class="card-body position-relative p-4">
-              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
-                S&amp;P 500
-              </h6>
-              <h3 class="fw-bold mt-2 mb-0" id="lblSP500">$0.00</h3>
-              <i class="fa-solid fa-chart-line card-icon-bg"></i>
-            </div>
-          </div>
-        </div>
-
-        <!-- NASDAQ -->
-        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Nasdaq" onclick="filterByAccount('Nasdaq')" style="cursor:pointer">
-          <div class="card bg-nasdaq text-white h-100 border-0">
-            <div class="card-body position-relative p-4">
-              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
-                NASDAQ
-              </h6>
-              <h3 class="fw-bold mt-2 mb-0" id="lblNasdaq">$0.00</h3>
-              <i class="fa-solid fa-arrow-trend-up card-icon-bg"></i>
+        <!-- HAPI (BROKER) CON CHIPS DE INVERSIONES S&P 500 Y NASDAQ -->
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Hapi" onclick="filterByAccount('Hapi')" style="cursor:pointer">
+          <div class="card bg-hapi text-white h-100 border-0">
+            <div class="card-body position-relative p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <h6 class="text-uppercase opacity-75 small fw-bold ls-1 mb-0">
+                  Hapi (Broker)
+                </h6>
+                <img
+                  src="assets/hapi.svg"
+                  style="width: 22px; height: 22px; border-radius: 6px;"
+                  onerror="this.style.display = 'none'"
+                />
+              </div>
+              <h3 class="fw-bold mt-1 mb-0" id="lblHapi">$0.00</h3>
+              <small class="text-white-50 d-block" style="font-size: 0.65rem;">Saldo Disponible</small>
+              
+              <!-- Chips de Inversiones en Hapi -->
+              <div class="hapi-chips-container">
+                <div class="hapi-chip chip-sp500" title="S&P 500 (VOO) - Clic para ver historial" onclick="event.stopPropagation(); filterByAccount('SP500');">
+                  <i class="fa-solid fa-chart-line text-success"></i>
+                  <span>S&P:</span>
+                  <span class="hapi-chip-val" id="lblSP500">$0.00</span>
+                  <span class="hapi-chip-pl pl-pos d-none" id="chipSP500PL">+0%</span>
+                </div>
+                <div class="hapi-chip chip-nasdaq" title="NASDAQ-100 (QQQ) - Clic para ver historial" onclick="event.stopPropagation(); filterByAccount('Nasdaq');">
+                  <i class="fa-solid fa-arrow-trend-up text-info"></i>
+                  <span>NAS:</span>
+                  <span class="hapi-chip-val" id="lblNasdaq">$0.00</span>
+                  <span class="hapi-chip-pl pl-pos d-none" id="chipNasdaqPL">+0%</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -391,7 +401,9 @@
                     <option value="transfer">
                       🔀 Transferencia entre Cuentas
                     </option>
-                    <!-- NUEVA OPCIÓN -->
+                    <option value="invest">
+                      📈 Invertir en Acciones / ETFs
+                    </option>
                     <option value="trade_profit">📈 Trading: Ganancia</option>
                     <option value="trade_loss">📉 Trading: Pérdida</option>
                     <option value="loan_out">
@@ -422,8 +434,9 @@
                     <option value="Pichincha">Banco Pichincha</option>
                     <option value="Binance">Binance</option>
                     <option value="DeUna">DeUna!</option>
-                    <option value="Morse">Morse</option>
                     <option value="Efectivo">Efectivo</option>
+                    <option value="Hapi" selected>Hapi (Broker)</option>
+                    <option value="Morse">Morse</option>
                     <option value="Nasdaq">NASDAQ</option>
                     <option value="PeiGo">PeiGo</option>
                     <option value="Produbanco">Produbanco</option>
@@ -432,7 +445,18 @@
                   </select>
                 </div>
 
-                <!-- CUENTA DESTINO (A donde llega) - NUEVO CAMPO -->
+                <!-- ACTIVO A COMPRAR (Solo para Invertir) -->
+                <div class="mb-3 d-none" id="groupInvestAsset">
+                  <label class="form-label small fw-bold text-muted">
+                    <i class="fa-solid fa-layer-group me-1 text-primary"></i>Activo / Acción a Comprar
+                  </label>
+                  <select class="form-select filled-input fw-bold" id="inputInvestAsset" onchange="onInvestAssetChange()">
+                    <option value="SP500">📈 S&P 500 (VOO / Vanguard 500)</option>
+                    <option value="Nasdaq">🚀 NASDAQ-100 (QQQ / Invesco)</option>
+                  </select>
+                </div>
+
+                <!-- CUENTA DESTINO (A donde llega en transferencias) -->
                 <div class="mb-3 d-none" id="groupAccountTo">
                   <label class="form-label small fw-bold text-muted"
                     >Hacia (Cuenta Destino)</label
@@ -443,8 +467,9 @@
                     <option value="Pichincha">Banco Pichincha</option>
                     <option value="Binance" selected>Binance</option>
                     <option value="DeUna">DeUna!</option>
-                    <option value="Morse">Morse</option>
                     <option value="Efectivo">Efectivo</option>
+                    <option value="Hapi">Hapi (Broker)</option>
+                    <option value="Morse">Morse</option>
                     <option value="Nasdaq">NASDAQ</option>
                     <option value="PeiGo">PeiGo</option>
                     <option value="Produbanco">Produbanco</option>
@@ -452,9 +477,33 @@
                     <option value="UglyCash">Ugly Cash</option>
                   </select>
                 </div>
-                <!-- COMISIÓN (solo visible en transferencias) -->
+
+                <!-- PRECIO DE LA ACCIÓN (Solo visible en Invertir) -->
+                <div class="mb-3 d-none" id="groupSharePrice">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label small fw-bold text-muted mb-0">
+                      <i class="fa-solid fa-tag me-1 text-primary"></i>Precio por Acción ($)
+                    </label>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none small text-primary" id="btnUseLivePrice" onclick="useLivePriceInForm()">
+                      <i class="fa-solid fa-bolt me-1"></i>Usar precio actual
+                    </button>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    class="form-control filled-input"
+                    id="inputSharePrice"
+                    placeholder="0.00"
+                  />
+                  <div class="form-text text-muted" id="sharePriceHint" style="font-size:0.72rem;"></div>
+                </div>
+
+                <!-- COMISIÓN (visible en transferencias e inversiones) -->
                 <div class="mb-3 d-none" id="groupCommission">
-                  <label class="form-label small fw-bold text-muted">Comisión (opcional)</label>
+                  <label class="form-label small fw-bold text-muted">
+                    <i class="fa-solid fa-receipt me-1 text-warning"></i>Comisión del Broker ($)
+                  </label>
                   <input
                     type="number"
                     step="0.01"
@@ -483,7 +532,7 @@
 
                 <div class="mb-3">
                   <label class="form-label small fw-bold text-muted"
-                    >Monto ($)</label
+                    >Monto Total ($)</label
                   >
                   <input
                     type="number"
@@ -493,6 +542,36 @@
                     placeholder="0.00"
                     required
                   />
+                </div>
+
+                <!-- PREVIEW DE INVERSIÓN (CONFIRMACIÓN EN VIVO) -->
+                <div class="inv-preview-box d-none" id="invPreviewBox">
+                  <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-secondary border-opacity-10">
+                    <span class="small fw-bold text-uppercase" style="font-size: 0.7rem; color: #a855f7;">
+                      <i class="fa-solid fa-magnifying-glass-chart me-1"></i>Resumen de la Compra
+                    </span>
+                    <span class="badge bg-primary-subtle text-primary" id="invPreviewAssetBadge">S&P 500</span>
+                  </div>
+                  <div class="inv-preview-item">
+                    <span class="text-muted">Monto a Debitar (Hapi):</span>
+                    <span class="fw-bold" id="invPreviewTotalDebited">$0.00</span>
+                  </div>
+                  <div class="inv-preview-item">
+                    <span class="text-muted">Comisión Broker:</span>
+                    <span class="text-warning fw-bold" id="invPreviewCommission">$0.00</span>
+                  </div>
+                  <div class="inv-preview-item">
+                    <span class="text-muted">Neto a Invertir:</span>
+                    <span class="text-success fw-bold" id="invPreviewNetInvested">$0.00</span>
+                  </div>
+                  <div class="inv-preview-item">
+                    <span class="text-muted">Precio Unitario:</span>
+                    <span class="fw-bold" id="invPreviewUnitPrice">$0.00</span>
+                  </div>
+                  <div class="inv-preview-item pt-1 mt-1 border-top border-secondary border-opacity-10">
+                    <span class="fw-bold">Acciones Adquiridas:</span>
+                    <span class="inv-preview-highlight fs-6" id="invPreviewSharesCount">0.0000 shares</span>
+                  </div>
                 </div>
 
                 <div class="mb-3">
@@ -610,8 +689,9 @@
                       <option value="Pichincha">Banco Pichincha</option>
                       <option value="Binance">Binance</option>
                       <option value="DeUna">DeUna!</option>
-                      <option value="Morse">Morse</option>
                       <option value="Efectivo">Efectivo</option>
+                      <option value="Hapi">Hapi (Broker)</option>
+                      <option value="Morse">Morse</option>
                       <option value="Nasdaq">NASDAQ</option>
                       <option value="PeiGo">PeiGo</option>
                       <option value="Produbanco">Produbanco</option>
@@ -711,6 +791,7 @@
                         <option value="Binance">Binance</option>
                         <option value="UglyCash">Ugly Cash</option>
                         <option value="Efectivo">Efectivo</option>
+                        <option value="Hapi">Hapi (Broker)</option>
                         <option value="Airtm">Airtm</option>
                         <option value="Morse">Morse</option>
                         <option value="SP500">S&amp;P 500</option>
@@ -823,21 +904,35 @@
 
                 <!-- TABLA PROYECCIÓN & REGLA DEL 4% -->
                 <div class="tab-pane fade p-4" id="tab-proyeccion">
-                  <!-- ENCABEZADO Y DETECCIÓN AUTOMÁTICA -->
-                  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2 pb-3 border-bottom border-secondary border-opacity-10">
+                  <!-- ENCABEZADO Y TRACKER EN TIEMPO REAL -->
+                  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 pb-3 border-bottom border-secondary border-opacity-10">
                     <div>
                       <h5 class="fw-bold mb-1 d-flex align-items-center gap-2">
                         <i class="fa-solid fa-chart-line text-primary"></i>
                         Simulador de Proyección &amp; Libertad Financiera
                       </h5>
                       <p class="text-muted small mb-0">
-                        Punto de partida calculado automáticamente de tus inversiones reales. Modifica tus aportes a futuro y visualiza el crecimiento en tiempo real.
+                        Punto de partida calculado automáticamente de tus inversiones reales. Cotizaciones en vivo para cálculo exacto de portafolio y DCA.
                       </p>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                      <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-3 py-2 rounded-pill shadow-sm">
-                        <i class="fa-solid fa-circle-check me-1 text-success"></i>Sincronizado en tiempo real con tu base de datos
-                      </span>
+                    
+                    <!-- WIDGET DE PRECIOS EN VIVO API -->
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                      <div class="live-ticker-badge shadow-sm" id="tickerSP500">
+                        <span class="pulse-dot"></span>
+                        <span class="text-muted small">VOO (S&P):</span>
+                        <strong class="text-success" id="lblLivePriceSP500">$540.00</strong>
+                        <span class="badge bg-success-subtle text-success p-1 small" id="lblLiveChangeSP500">+0.0%</span>
+                      </div>
+                      <div class="live-ticker-badge shadow-sm" id="tickerNasdaq">
+                        <span class="pulse-dot"></span>
+                        <span class="text-muted small">QQQ (NAS):</span>
+                        <strong class="text-info" id="lblLivePriceNasdaq">$490.00</strong>
+                        <span class="badge bg-info-subtle text-info p-1 small" id="lblLiveChangeNasdaq">+0.0%</span>
+                      </div>
+                      <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" id="btnRefreshPrices" onclick="fetchLivePrices(true)" title="Actualizar cotizaciones en vivo">
+                        <i class="fa-solid fa-arrows-rotate me-1" id="iconRefreshPrices"></i>Actualizar
+                      </button>
                     </div>
                   </div>
 
@@ -870,19 +965,25 @@
                       <div class="p-3 p-xl-4 inv-panel-sp500 mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                           <span class="badge badge-sp500-tag px-3 py-2 rounded-pill">
-                            <i class="fa-solid fa-chart-line me-1"></i>S&amp;P 500
+                            <i class="fa-solid fa-chart-line me-1"></i>S&amp;P 500 (VOO)
                           </span>
                           <span class="badge bg-success-subtle text-success border border-success border-opacity-25 small" id="sp500HistoryInfoBadge">Punto de partida</span>
                         </div>
 
                         <!-- CAPITAL ACTUAL DETECTADO DE LA BASE DE DATOS -->
                         <div class="p-3 mb-3 rounded-3" style="background: rgba(16, 185, 129, 0.08); border: 1.5px dashed rgba(16, 185, 129, 0.35);">
-                          <div class="d-flex justify-content-between align-items-center">
+                          <div class="d-flex justify-content-between align-items-center mb-2">
                             <div>
-                              <small class="text-muted text-uppercase fw-bold d-block" style="font-size:0.7rem;">Capital Actual Invertido (Base)</small>
+                              <small class="text-muted text-uppercase fw-bold d-block" style="font-size:0.7rem;">Valor Actual en Portafolio</small>
                               <h4 class="fw-bold text-success mb-0" id="sp500RealBalDisplay">$0.00</h4>
                             </div>
-                            <small class="text-muted text-end small" id="sp500DepositsCountText">0 aportes registrados</small>
+                            <small class="text-muted text-end small" id="sp500DepositsCountText">0 compras registradas</small>
+                          </div>
+                          <!-- MÉTRICAS DCA S&P 500 -->
+                          <div class="pt-2 border-top border-success border-opacity-25 d-flex justify-content-between text-muted" style="font-size:0.72rem;">
+                            <span>Acciones: <strong class="text-success" id="sp500SharesDisplay">0.00</strong></span>
+                            <span>Costo Prom: <strong id="sp500AvgCostDisplay">$0.00</strong></span>
+                            <span id="sp500PLDisplay" class="fw-bold text-success">+0.0%</span>
                           </div>
                         </div>
 
@@ -911,19 +1012,25 @@
                       <div class="p-3 p-xl-4 inv-panel-nasdaq mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                           <span class="badge badge-nasdaq-tag px-3 py-2 rounded-pill">
-                            <i class="fa-solid fa-arrow-trend-up me-1"></i>NASDAQ-100
+                            <i class="fa-solid fa-arrow-trend-up me-1"></i>NASDAQ-100 (QQQ)
                           </span>
                           <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 small" id="nasdaqHistoryInfoBadge">Punto de partida</span>
                         </div>
 
                         <!-- CAPITAL ACTUAL DETECTADO DE LA BASE DE DATOS -->
                         <div class="p-3 mb-3 rounded-3" style="background: rgba(56, 189, 248, 0.08); border: 1.5px dashed rgba(56, 189, 248, 0.35);">
-                          <div class="d-flex justify-content-between align-items-center">
+                          <div class="d-flex justify-content-between align-items-center mb-2">
                             <div>
-                              <small class="text-muted text-uppercase fw-bold d-block" style="font-size:0.7rem;">Capital Actual Invertido (Base)</small>
+                              <small class="text-muted text-uppercase fw-bold d-block" style="font-size:0.7rem;">Valor Actual en Portafolio</small>
                               <h4 class="fw-bold text-info mb-0" id="nasdaqRealBalDisplay">$0.00</h4>
                             </div>
-                            <small class="text-muted text-end small" id="nasdaqDepositsCountText">0 aportes registrados</small>
+                            <small class="text-muted text-end small" id="nasdaqDepositsCountText">0 compras registradas</small>
+                          </div>
+                          <!-- MÉTRICAS DCA NASDAQ -->
+                          <div class="pt-2 border-top border-info border-opacity-25 d-flex justify-content-between text-muted" style="font-size:0.72rem;">
+                            <span>Acciones: <strong class="text-info" id="nasdaqSharesDisplay">0.00</strong></span>
+                            <span>Costo Prom: <strong id="nasdaqAvgCostDisplay">$0.00</strong></span>
+                            <span id="nasdaqPLDisplay" class="fw-bold text-info">+0.0%</span>
                           </div>
                         </div>
 

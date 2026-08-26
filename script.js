@@ -36,10 +36,121 @@ const fmt = new Intl.NumberFormat("en-US", {
 const form = document.getElementById("formTransaction");
 const dateInput = document.getElementById("inputDate");
 
+// --- SISTEMA DE PRECIOS EN TIEMPO REAL & COTIZACIONES DE MERCADO ---
+const LIVE_PRICES_KEY = "finanzas_live_prices_v2";
+let liveMarketPrices = {
+  SP500: { price: 546.50, change: 0.45, ticker: "VOO", name: "Vanguard S&P 500 ETF" },
+  Nasdaq: { price: 494.30, change: 0.68, ticker: "QQQ", name: "Invesco QQQ (NASDAQ-100)" },
+  lastUpdated: null,
+};
+
+function loadCachedLivePrices() {
+  const cached = localStorage.getItem(LIVE_PRICES_KEY);
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached);
+      if (parsed.SP500 && parsed.Nasdaq) {
+        liveMarketPrices = parsed;
+      }
+    } catch (e) {}
+  }
+}
+
+async function fetchLivePrices(isManual = false) {
+  const icon = document.getElementById("iconRefreshPrices");
+  if (icon) icon.classList.add("fa-spin");
+
+  const symbols = [
+    { key: "SP500", ticker: "VOO", fallback: 546.50 },
+    { key: "Nasdaq", ticker: "QQQ", fallback: 494.30 }
+  ];
+
+  let updatedCount = 0;
+
+  for (const item of symbols) {
+    try {
+      const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${item.ticker}?interval=1d`;
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+      const resp = await fetch(proxyUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (resp.ok) {
+        const json = await resp.json();
+        const meta = json?.chart?.result?.[0]?.meta;
+        if (meta && meta.regularMarketPrice) {
+          const currentPrice = meta.regularMarketPrice;
+          const prevClose = meta.chartPreviousClose || meta.previousClose || currentPrice;
+          const changePct = prevClose > 0 ? (((currentPrice - prevClose) / prevClose) * 100) : 0;
+
+          liveMarketPrices[item.key].price = currentPrice;
+          liveMarketPrices[item.key].change = changePct;
+          updatedCount++;
+        }
+      }
+    } catch (err) {
+      console.warn(`No se pudo obtener precio en vivo para ${item.ticker}, usando precio en caché:`, err);
+    }
+  }
+
+  liveMarketPrices.lastUpdated = new Date().toISOString();
+  localStorage.setItem(LIVE_PRICES_KEY, JSON.stringify(liveMarketPrices));
+
+  if (icon) icon.classList.remove("fa-spin");
+
+  updateLiveTickersUI();
+  renderAll();
+
+  if (isManual) {
+    const Toast = Swal.mixin({
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timer: 2500,
+    });
+    Toast.fire({
+      icon: updatedCount > 0 ? "success" : "info",
+      title: updatedCount > 0 ? "Precios de mercado actualizados" : "Cotizaciones sincronizadas (modo offline)",
+    });
+  }
+}
+
+function updateLiveTickersUI() {
+  const spPriceEl = document.getElementById("lblLivePriceSP500");
+  const spChangeEl = document.getElementById("lblLiveChangeSP500");
+  const nasPriceEl = document.getElementById("lblLivePriceNasdaq");
+  const nasChangeEl = document.getElementById("lblLiveChangeNasdaq");
+
+  if (spPriceEl && liveMarketPrices.SP500) {
+    spPriceEl.innerText = fmt.format(liveMarketPrices.SP500.price);
+  }
+  if (spChangeEl && liveMarketPrices.SP500) {
+    const chg = liveMarketPrices.SP500.change || 0;
+    spChangeEl.innerText = `${chg >= 0 ? "+" : ""}${chg.toFixed(2)}%`;
+    spChangeEl.className = chg >= 0 ? "badge bg-success-subtle text-success p-1 small" : "badge bg-danger-subtle text-danger p-1 small";
+  }
+
+  if (nasPriceEl && liveMarketPrices.Nasdaq) {
+    nasPriceEl.innerText = fmt.format(liveMarketPrices.Nasdaq.price);
+  }
+  if (nasChangeEl && liveMarketPrices.Nasdaq) {
+    const chg = liveMarketPrices.Nasdaq.change || 0;
+    nasChangeEl.innerText = `${chg >= 0 ? "+" : ""}${chg.toFixed(2)}%`;
+    nasChangeEl.className = chg >= 0 ? "badge bg-info-subtle text-info p-1 small" : "badge bg-danger-subtle text-danger p-1 small";
+  }
+}
+
 // --- INICIO DE LA APP ---
 initApp();
 
 function initApp() {
+  // 0. Cargar cotizaciones cacheadas y consultar en segundo plano
+  loadCachedLivePrices();
+  setTimeout(() => fetchLivePrices(false), 800);
+
   // 1. Configurar fecha de hoy solo si no hay una guardada
   const saved = localStorage.getItem(LAST_FORM_KEY);
   if (saved) {
@@ -67,6 +178,7 @@ function initApp() {
   // 4. Cargar datos locales primero (Modo Invitado)
   loadLocalData();
   renderAll();
+  updateLiveTickersUI();
 }
 
 // --- SISTEMA DE AUTENTICACIÓN HÍBRIDO ---
@@ -339,10 +451,48 @@ if (form) {
       return;
     }
 
-  const commission = type === "transfer" ? (parseFloat(document.getElementById("inputCommission").value) || 0) : 0;
+  const commission = (type === "transfer" || type === "invest") ? (parseFloat(document.getElementById("inputCommission").value) || 0) : 0;
     const baseTx = { id: Date.now(), date: date, amount: amount, desc: desc };
 
-    if (type === "transfer") {
+    if (type === "invest") {
+      const investAsset = document.getElementById("inputInvestAsset")?.value || "SP500";
+      const sharePrice = parseFloat(document.getElementById("inputSharePrice")?.value) || (liveMarketPrices[investAsset]?.price || 500);
+      const netAmount = Math.max(0, amount - commission);
+      const shares = sharePrice > 0 ? (netAmount / sharePrice) : 0;
+      const commNote = commission > 0 ? ` (comisión: ${fmt.format(commission)})` : '';
+      const assetLabel = investAsset === "SP500" ? "S&P 500 (VOO)" : "NASDAQ-100 (QQQ)";
+
+      if (editingId !== null) {
+        transactions = transactions.filter(t => t.id !== editingId);
+        editingId = null;
+        document.querySelector('#formTransaction button[type="submit"]').innerHTML = 'Guardar';
+      }
+
+      const txOut = {
+        ...baseTx,
+        id: Date.now(),
+        type: "transfer_out",
+        account: accountFrom,
+        commission: commission > 0 ? commission : undefined,
+        desc: desc ? `Inversión en ${assetLabel} (${shares.toFixed(4)} acc @ ${fmt.format(sharePrice)})${commNote} - ${desc}` : `Inversión en ${assetLabel} (${shares.toFixed(4)} acc @ ${fmt.format(sharePrice)})${commNote}`,
+        person: null,
+      };
+      const txIn = {
+        ...baseTx,
+        id: Date.now() + 1,
+        type: "transfer_in",
+        account: investAsset,
+        amount: netAmount,
+        sharePrice: sharePrice,
+        shares: shares,
+        commission: commission > 0 ? commission : undefined,
+        desc: desc ? `Compra ${assetLabel} (${shares.toFixed(4)} acc @ ${fmt.format(sharePrice)})${commNote} - ${desc}` : `Compra ${assetLabel} (${shares.toFixed(4)} acc @ ${fmt.format(sharePrice)})${commNote}`,
+        person: null,
+      };
+
+      transactions.unshift(txIn);
+      transactions.unshift(txOut);
+    } else if (type === "transfer") {
       if (editingId !== null) {
         // Delete the original transaction being edited
         transactions = transactions.filter(t => t.id !== editingId);
@@ -396,8 +546,8 @@ if (form) {
     document.getElementById("inputDesc").value = "";
     document.getElementById("inputPerson").value = "";
     document.getElementById("inputCommission").value = "";
-    // La fecha se mantiene igual a la última usada
-    // NO llamamos a toggleFormFields() para mantener la visibilidad de campos
+    if (document.getElementById("inputSharePrice")) document.getElementById("inputSharePrice").value = "";
+    updateInvestPreview();
 
     const Toast = Swal.mixin({
       toast: true,
@@ -414,20 +564,27 @@ if (form) {
 
 // Controlar campos del formulario
 function toggleFormFields() {
-  const type = document.getElementById("inputType").value;
+  const type = document.getElementById("inputType")?.value;
   const groupPerson = document.getElementById("groupPerson");
   const inputPerson = document.getElementById("inputPerson");
   const lblAccount = document.getElementById("lblAccount");
   const groupAccountTo = document.getElementById("groupAccountTo");
+  const groupInvestAsset = document.getElementById("groupInvestAsset");
+  const groupSharePrice = document.getElementById("groupSharePrice");
+  const groupCommission = document.getElementById("groupCommission");
+  const invPreviewBox = document.getElementById("invPreviewBox");
 
   // Resetear
-  groupPerson.classList.add("d-none");
-  inputPerson.removeAttribute("required");
-  groupAccountTo.classList.add("d-none");
-  lblAccount.innerText = "Cuenta";
-
-  const groupCommission = document.getElementById("groupCommission");
+  if (groupPerson) {
+    groupPerson.classList.add("d-none");
+    if (inputPerson) inputPerson.removeAttribute("required");
+  }
+  if (groupAccountTo) groupAccountTo.classList.add("d-none");
+  if (groupInvestAsset) groupInvestAsset.classList.add("d-none");
+  if (groupSharePrice) groupSharePrice.classList.add("d-none");
   if (groupCommission) groupCommission.classList.add("d-none");
+  if (invPreviewBox) invPreviewBox.classList.add("d-none");
+  if (lblAccount) lblAccount.innerText = "Cuenta";
 
   if (
     type === "loan_out" ||
@@ -435,28 +592,117 @@ function toggleFormFields() {
     type === "debt_in" ||
     type === "debt_payment"
   ) {
-    groupPerson.classList.remove("d-none");
-    inputPerson.setAttribute("required", "required");
+    if (groupPerson) groupPerson.classList.remove("d-none");
+    if (inputPerson) inputPerson.setAttribute("required", "required");
   } else if (type === "transfer") {
-    lblAccount.innerText = "Desde (Origen)";
-    groupAccountTo.classList.remove("d-none");
+    if (lblAccount) lblAccount.innerText = "Desde (Origen)";
+    if (groupAccountTo) groupAccountTo.classList.remove("d-none");
     if (groupCommission) groupCommission.classList.remove("d-none");
     updateCommissionHint();
+  } else if (type === "invest") {
+    if (lblAccount) lblAccount.innerText = "Desde (Broker)";
+    const accSelect = document.getElementById("inputAccount");
+    if (accSelect && (!accSelect.value || accSelect.value === "Airtm")) {
+      accSelect.value = "Hapi";
+    }
+    if (groupInvestAsset) groupInvestAsset.classList.remove("d-none");
+    if (groupSharePrice) groupSharePrice.classList.remove("d-none");
+    if (groupCommission) groupCommission.classList.remove("d-none");
+    if (invPreviewBox) invPreviewBox.classList.remove("d-none");
+    onInvestAssetChange();
+    updateInvestPreview();
   }
+}
+
+// Al cambiar el activo seleccionado en el formulario de inversión
+function onInvestAssetChange() {
+  const asset = document.getElementById("inputInvestAsset")?.value || "SP500";
+  const sharePriceInput = document.getElementById("inputSharePrice");
+  const sharePriceHint = document.getElementById("sharePriceHint");
+  const livePrice = liveMarketPrices[asset]?.price || (asset === "SP500" ? 546.50 : 494.30);
+  const ticker = liveMarketPrices[asset]?.ticker || (asset === "SP500" ? "VOO" : "QQQ");
+
+  if (sharePriceInput && !sharePriceInput.value) {
+    sharePriceInput.value = livePrice.toFixed(2);
+  }
+  if (sharePriceHint) {
+    sharePriceHint.innerHTML = `<i class="fa-solid fa-circle-info me-1"></i>Cotización actual de <strong>${ticker}</strong>: ${fmt.format(livePrice)}`;
+  }
+  updateInvestPreview();
+}
+
+// Botón "Usar precio actual"
+function useLivePriceInForm() {
+  const asset = document.getElementById("inputInvestAsset")?.value || "SP500";
+  const sharePriceInput = document.getElementById("inputSharePrice");
+  const livePrice = liveMarketPrices[asset]?.price || (asset === "SP500" ? 546.50 : 494.30);
+  if (sharePriceInput) {
+    sharePriceInput.value = livePrice.toFixed(2);
+    updateInvestPreview();
+  }
+}
+
+// Actualiza el preview dinámico en vivo del formulario de inversión
+function updateInvestPreview() {
+  const previewBox = document.getElementById("invPreviewBox");
+  if (!previewBox) return;
+
+  const type = document.getElementById("inputType")?.value;
+  if (type !== "invest") {
+    previewBox.classList.add("d-none");
+    return;
+  }
+
+  previewBox.classList.remove("d-none");
+
+  const asset = document.getElementById("inputInvestAsset")?.value || "SP500";
+  const amount = parseFloat(document.getElementById("inputAmount")?.value) || 0;
+  const commission = parseFloat(document.getElementById("inputCommission")?.value) || 0;
+  const sharePrice = parseFloat(document.getElementById("inputSharePrice")?.value) || (liveMarketPrices[asset]?.price || 500);
+
+  const netInvested = Math.max(0, amount - commission);
+  const shares = sharePrice > 0 ? (netInvested / sharePrice) : 0;
+
+  const assetBadge = document.getElementById("invPreviewAssetBadge");
+  const totalDebited = document.getElementById("invPreviewTotalDebited");
+  const commEl = document.getElementById("invPreviewCommission");
+  const netEl = document.getElementById("invPreviewNetInvested");
+  const unitPriceEl = document.getElementById("invPreviewUnitPrice");
+  const sharesEl = document.getElementById("invPreviewSharesCount");
+
+  if (assetBadge) {
+    assetBadge.innerText = asset === "SP500" ? "S&P 500 (VOO)" : "NASDAQ-100 (QQQ)";
+    assetBadge.className = asset === "SP500" ? "badge bg-success-subtle text-success" : "badge bg-info-subtle text-info";
+  }
+  if (totalDebited) totalDebited.innerText = fmt.format(amount);
+  if (commEl) commEl.innerText = fmt.format(commission);
+  if (netEl) netEl.innerText = fmt.format(netInvested);
+  if (unitPriceEl) unitPriceEl.innerText = fmt.format(sharePrice) + " / acc";
+  if (sharesEl) sharesEl.innerText = `${shares.toFixed(4)} acciones`;
 }
 
 // Actualiza el hint de comisión con el monto neto que recibirá el destino
 function updateCommissionHint() {
   const hint = document.getElementById("commissionHint");
   if (!hint) return;
+  const type = document.getElementById("inputType")?.value;
   const amount = parseFloat(document.getElementById("inputAmount")?.value) || 0;
   const commission = parseFloat(document.getElementById("inputCommission")?.value) || 0;
   const accountTo = document.getElementById("inputAccountTo")?.value || "destino";
-  if (amount > 0 && commission > 0) {
-    const net = Math.max(0, amount - commission);
-    hint.innerHTML = `<i class="fa-solid fa-circle-info me-1 text-warning"></i>${accountTo} recibirá <strong>${fmt.format(net)}</strong>`;
-  } else {
-    hint.innerHTML = "";
+
+  if (type === "transfer") {
+    if (amount > 0 && commission > 0) {
+      const net = Math.max(0, amount - commission);
+      hint.innerHTML = `<i class="fa-solid fa-circle-info me-1 text-warning"></i>${accountTo} recibirá <strong>${fmt.format(net)}</strong>`;
+    } else {
+      hint.innerHTML = "";
+    }
+  } else if (type === "invest") {
+    if (commission > 0) {
+      hint.innerHTML = `<i class="fa-solid fa-circle-info me-1 text-warning"></i>Se descontará de tu saldo de Hapi junto con la compra.`;
+    } else {
+      hint.innerHTML = "";
+    }
   }
 }
 
@@ -565,6 +811,55 @@ function checkTheme() {
   }
 }
 
+// Calcula métricas de inversión (Shares, DCA / Costo promedio, Ganancia/Pérdida no realizada)
+function calculateInvestmentMetrics(bal) {
+  if (!bal) bal = calculateBalances().bal;
+
+  const assets = ["SP500", "Nasdaq"];
+  const metrics = {};
+
+  assets.forEach((asset) => {
+    const txs = transactions
+      .filter((t) => (t.account === asset || (t.type === "transfer_in" && t.account === asset)) && ["ingreso", "transfer_in"].includes(t.type))
+      .sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
+
+    let totalDeposited = 0;
+    let totalShares = 0;
+    const defaultPrice = asset === "SP500" ? 546.50 : 494.30;
+    const currentPrice = liveMarketPrices[asset]?.price || defaultPrice;
+
+    txs.forEach((t) => {
+      totalDeposited += t.amount;
+      if (t.shares && t.shares > 0) {
+        totalShares += t.shares;
+      } else if (t.sharePrice && t.sharePrice > 0) {
+        totalShares += t.amount / t.sharePrice;
+      } else {
+        totalShares += t.amount / defaultPrice;
+      }
+    });
+
+    const avgCost = totalShares > 0 ? (totalDeposited / totalShares) : 0;
+    const currentMarketVal = totalShares > 0 ? (totalShares * currentPrice) : (bal[asset] || 0);
+    const unrealizedPL = currentMarketVal - totalDeposited;
+    const unrealizedPLPct = totalDeposited > 0 ? ((unrealizedPL / totalDeposited) * 100) : 0;
+
+    metrics[asset] = {
+      txCount: txs.length,
+      firstTx: txs.length > 0 ? txs[0] : null,
+      totalDeposited,
+      totalShares,
+      avgCost,
+      currentPrice,
+      currentMarketVal,
+      unrealizedPL,
+      unrealizedPLPct,
+    };
+  });
+
+  return metrics;
+}
+
 // Cálculos
 function calculateBalances() {
   let bal = {
@@ -577,6 +872,7 @@ function calculateBalances() {
     UglyCash: 0,
     Efectivo: 0,
     Airtm: 0,
+    Hapi: 0,
     Morse: 0,
     SP500: 0,
     Nasdaq: 0,
@@ -619,7 +915,7 @@ function calculateBalances() {
     }
   });
 
-  // SUMA TOTAL CON TODOS LOS BANCOS
+  // SUMA TOTAL CON TODOS LOS BANCOS Y BROKER
   bal["Total"] =
     bal["Pichincha"] +
     bal["Guayaquil"] +
@@ -628,6 +924,7 @@ function calculateBalances() {
     bal["PeiGo"] +
     bal["UglyCash"] +
     bal["Efectivo"] +
+    bal["Hapi"] +
     bal["Airtm"] +
     bal["Morse"] +
     bal["SP500"] +
@@ -639,6 +936,7 @@ function calculateBalances() {
 // Renderizar Todo
 function renderAll() {
   const { bal, debts } = calculateBalances();
+  const invMetrics = calculateInvestmentMetrics(bal);
 
   if (document.getElementById("lblTotal"))
     document.getElementById("lblTotal").innerText = fmt.format(bal["Total"]);
@@ -675,6 +973,8 @@ function renderAll() {
     );
   if (document.getElementById("lblAirtm"))
     document.getElementById("lblAirtm").innerText = fmt.format(bal["Airtm"]);
+  if (document.getElementById("lblHapi"))
+    document.getElementById("lblHapi").innerText = fmt.format(bal["Hapi"]);
   if (document.getElementById("lblMorse"))
     document.getElementById("lblMorse").innerText = fmt.format(bal["Morse"]);
   if (document.getElementById("lblSP500"))
@@ -686,13 +986,39 @@ function renderAll() {
       bal["PorCobrar"],
     );
 
+  // Chips P&L badges en tarjeta Hapi
+  const spPLChip = document.getElementById("chipSP500PL");
+  const nasPLChip = document.getElementById("chipNasdaqPL");
+
+  if (spPLChip && invMetrics.SP500) {
+    if (invMetrics.SP500.totalDeposited > 0) {
+      const pl = invMetrics.SP500.unrealizedPLPct;
+      spPLChip.innerText = `${pl >= 0 ? "+" : ""}${pl.toFixed(1)}%`;
+      spPLChip.className = pl >= 0 ? "hapi-chip-pl pl-pos" : "hapi-chip-pl pl-neg";
+      spPLChip.classList.remove("d-none");
+    } else {
+      spPLChip.classList.add("d-none");
+    }
+  }
+
+  if (nasPLChip && invMetrics.Nasdaq) {
+    if (invMetrics.Nasdaq.totalDeposited > 0) {
+      const pl = invMetrics.Nasdaq.unrealizedPLPct;
+      nasPLChip.innerText = `${pl >= 0 ? "+" : ""}${pl.toFixed(1)}%`;
+      nasPLChip.className = pl >= 0 ? "hapi-chip-pl pl-pos" : "hapi-chip-pl pl-neg";
+      nasPLChip.classList.remove("d-none");
+    } else {
+      nasPLChip.classList.add("d-none");
+    }
+  }
+
   renderTable();
   renderDebtors(debts);
   renderChart(bal);
   if (document.getElementById("summaryStartDate")) {
     updateSummary();
   }
-  updateProjectionActualsDisplay(bal);
+  updateProjectionActualsDisplay(bal, invMetrics);
 }
 
 // Renderizar Tabla
@@ -916,6 +1242,7 @@ function renderChart(bal) {
       "Binance",
       "Ugly",
       "Efectivo",
+      "Hapi",
       "Airtm",
       "Morse",
       "S&P 500",
@@ -933,6 +1260,7 @@ function renderChart(bal) {
           bal["Binance"],
           bal["UglyCash"],
           bal["Efectivo"],
+          bal["Hapi"],
           bal["Airtm"],
           bal["Morse"],
           bal["SP500"],
@@ -948,6 +1276,7 @@ function renderChart(bal) {
           "#F0B90B", // Binance
           "#1f2937", // Ugly
           "#485563", // Efectivo
+          "#7c3aed", // Hapi
           "#00AEEF", // Airtm
           "#ff7e5f", // Morse
           "#00a651", // S&P 500
@@ -1325,13 +1654,30 @@ document.addEventListener('DOMContentLoaded', () => {
       setSummaryPeriod('this_month');
     }
 
-    // Listeners para hint de comisión en tiempo real
+    // Listeners para hint de comisión e investment preview en tiempo real
     const inputAmount = document.getElementById("inputAmount");
     const inputCommission = document.getElementById("inputCommission");
     const inputAccountTo = document.getElementById("inputAccountTo");
-    if (inputAmount) inputAmount.addEventListener("input", updateCommissionHint);
-    if (inputCommission) inputCommission.addEventListener("input", updateCommissionHint);
+    const inputSharePrice = document.getElementById("inputSharePrice");
+    const inputInvestAsset = document.getElementById("inputInvestAsset");
+    const inputAccount = document.getElementById("inputAccount");
+
+    if (inputAmount) {
+      inputAmount.addEventListener("input", () => {
+        updateCommissionHint();
+        updateInvestPreview();
+      });
+    }
+    if (inputCommission) {
+      inputCommission.addEventListener("input", () => {
+        updateCommissionHint();
+        updateInvestPreview();
+      });
+    }
     if (inputAccountTo) inputAccountTo.addEventListener("change", updateCommissionHint);
+    if (inputSharePrice) inputSharePrice.addEventListener("input", updateInvestPreview);
+    if (inputInvestAsset) inputInvestAsset.addEventListener("change", onInvestAssetChange);
+    if (inputAccount) inputAccount.addEventListener("change", updateInvestPreview);
 
     // Listener para cambiar ancho del layout según la pestaña activa
     document.querySelectorAll('#mainTab button[data-bs-toggle="pill"]').forEach((btn) => {
@@ -1818,38 +2164,62 @@ let projectionChart = null;
 const PROJ_SETTINGS_KEY = "finanzas_projection_settings_v2";
 
 // Actualiza la visualización de saldo real y metadatos históricos de S&P 500 y NASDAQ
-function updateProjectionActualsDisplay(bal) {
+function updateProjectionActualsDisplay(bal, invMetrics) {
   if (!bal) bal = calculateBalances().bal;
+  if (!invMetrics) invMetrics = calculateInvestmentMetrics(bal);
 
-  const spBal = bal["SP500"] || 0;
-  const nasBal = bal["Nasdaq"] || 0;
+  const spData = invMetrics.SP500 || { totalDeposited: 0, totalShares: 0, avgCost: 0, currentMarketVal: bal["SP500"] || 0, unrealizedPLPct: 0 };
+  const nasData = invMetrics.Nasdaq || { totalDeposited: 0, totalShares: 0, avgCost: 0, currentMarketVal: bal["Nasdaq"] || 0, unrealizedPLPct: 0 };
 
   // Actualizar displays principales de saldo actual
   const spDisplay = document.getElementById("sp500RealBalDisplay");
   const nasDisplay = document.getElementById("nasdaqRealBalDisplay");
-  if (spDisplay) spDisplay.innerText = fmt.format(spBal);
-  if (nasDisplay) nasDisplay.innerText = fmt.format(nasBal);
+  if (spDisplay) spDisplay.innerText = fmt.format(spData.currentMarketVal);
+  if (nasDisplay) nasDisplay.innerText = fmt.format(nasData.currentMarketVal);
 
-  // Filtrar transacciones históricas de SP500 y Nasdaq
-  const spTxs = transactions
-    .filter((t) => (t.account === "SP500" || (t.type === "transfer_in" && t.account === "SP500")) && ["ingreso", "transfer_in"].includes(t.type))
-    .sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
+  // Actualizar métricas DCA S&P 500
+  const spSharesEl = document.getElementById("sp500SharesDisplay");
+  const spAvgEl = document.getElementById("sp500AvgCostDisplay");
+  const spPLEl = document.getElementById("sp500PLDisplay");
+  if (spSharesEl) spSharesEl.innerText = spData.totalShares.toFixed(2);
+  if (spAvgEl) spAvgEl.innerText = fmt.format(spData.avgCost);
+  if (spPLEl) {
+    if (spData.totalDeposited > 0) {
+      spPLEl.innerText = `${spData.unrealizedPLPct >= 0 ? "+" : ""}${spData.unrealizedPLPct.toFixed(1)}%`;
+      spPLEl.className = spData.unrealizedPLPct >= 0 ? "fw-bold text-success" : "fw-bold text-danger";
+    } else {
+      spPLEl.innerText = "+0.0%";
+      spPLEl.className = "fw-bold text-muted";
+    }
+  }
 
-  const nasTxs = transactions
-    .filter((t) => (t.account === "Nasdaq" || (t.type === "transfer_in" && t.account === "Nasdaq")) && ["ingreso", "transfer_in"].includes(t.type))
-    .sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
+  // Actualizar métricas DCA NASDAQ
+  const nasSharesEl = document.getElementById("nasdaqSharesDisplay");
+  const nasAvgEl = document.getElementById("nasdaqAvgCostDisplay");
+  const nasPLEl = document.getElementById("nasdaqPLDisplay");
+  if (nasSharesEl) nasSharesEl.innerText = nasData.totalShares.toFixed(2);
+  if (nasAvgEl) nasAvgEl.innerText = fmt.format(nasData.avgCost);
+  if (nasPLEl) {
+    if (nasData.totalDeposited > 0) {
+      nasPLEl.innerText = `${nasData.unrealizedPLPct >= 0 ? "+" : ""}${nasData.unrealizedPLPct.toFixed(1)}%`;
+      nasPLEl.className = nasData.unrealizedPLPct >= 0 ? "fw-bold text-info" : "fw-bold text-danger";
+    } else {
+      nasPLEl.innerText = "+0.0%";
+      nasPLEl.className = "fw-bold text-muted";
+    }
+  }
 
   // Badges y textos informativos S&P 500
   const spCountEl = document.getElementById("sp500DepositsCountText");
   const spBadgeEl = document.getElementById("sp500HistoryInfoBadge");
   if (spCountEl) {
-    spCountEl.innerText = `${spTxs.length} ${spTxs.length === 1 ? "aporte registrado" : "aportes registrados"}`;
+    spCountEl.innerText = `${spData.txCount || 0} ${(spData.txCount || 0) === 1 ? "compra registrada" : "compras registradas"}`;
   }
   if (spBadgeEl) {
-    if (spTxs.length > 0) {
-      spBadgeEl.innerText = `Primer aporte: ${spTxs[0].date} (${fmt.format(spTxs[0].amount)})`;
+    if (spData.firstTx) {
+      spBadgeEl.innerText = `Primer aporte: ${spData.firstTx.date} (${fmt.format(spData.firstTx.amount)})`;
     } else {
-      spBadgeEl.innerText = "Sin aportes previos";
+      spBadgeEl.innerText = "Sin compras previas";
     }
   }
 
@@ -1857,13 +2227,13 @@ function updateProjectionActualsDisplay(bal) {
   const nasCountEl = document.getElementById("nasdaqDepositsCountText");
   const nasBadgeEl = document.getElementById("nasdaqHistoryInfoBadge");
   if (nasCountEl) {
-    nasCountEl.innerText = `${nasTxs.length} ${nasTxs.length === 1 ? "aporte registrado" : "aportes registrados"}`;
+    nasCountEl.innerText = `${nasData.txCount || 0} ${(nasData.txCount || 0) === 1 ? "compra registrada" : "compras registradas"}`;
   }
   if (nasBadgeEl) {
-    if (nasTxs.length > 0) {
-      nasBadgeEl.innerText = `Primer aporte: ${nasTxs[0].date} (${fmt.format(nasTxs[0].amount)})`;
+    if (nasData.firstTx) {
+      nasBadgeEl.innerText = `Primer aporte: ${nasData.firstTx.date} (${fmt.format(nasData.firstTx.amount)})`;
     } else {
-      nasBadgeEl.innerText = "Sin aportes previos";
+      nasBadgeEl.innerText = "Sin compras previas";
     }
   }
 }
