@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
+
+    /* Base Palette - Vibrant Sapphire, Cyan & Deep Blue Theme */
+    --bg-base: #0a1738;
+    --app-bg: radial-gradient(120% 120% at 70% 70%, #1d4ed8 0%, #17387e 32%, #0d2153 60%, #07122b 100%);
+    --panel-bg: linear-gradient(155deg, #101c36 0%, #192c52 50%, #091020 100%);
+    --modal-glass-bg: linear-gradient(155deg, #121e3a 0%, #1b2e56 50%, #0a1124 100%);
+    --modal-border: rgba(56, 189, 248, 0.28);
+
+    /* Text & Borders */
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --border-subtle: rgba(148, 163, 184, 0.18);
+    --border-highlight: rgba(56, 189, 248, 0.45);
+  }
+
+  body {
+    font-family: var(--font-family);
+    background: var(--app-bg);
+    background-color: var(--bg-base);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  .app-canvas {
+    background: transparent;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Glass Panels & Containers (Modern Frosted Slate Glass) */
+.glass-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 24px 50px -12px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+}
+
+.modal-glass-container {
+  background: var(--modal-glass-bg);
+  border: 1px solid var(--modal-border);
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+}
+
+/* Shimmer Animation */
+@keyframes shimmerSweep {
+  0% {
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(120%) skewX(-20deg);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmerSweep 1.8s ease-in-out infinite;
+}
+
+/* Range input custom styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  height: 6px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #38bdf8;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: #0ea5e9;
+}
+
+/* Indicadores de fecha y hora nativos: cursor pointer ("dedito"), hover y escala */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.9;
+  filter: brightness(1.2);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  transform: scale(1.18);
+}
+

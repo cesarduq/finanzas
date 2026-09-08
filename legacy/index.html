@@ -1,0 +1,1366 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Financiero</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="styles.css" />
+
+    <link
+      rel="icon"
+      type="image/png"
+      href="/assets/favicon-96x96.png"
+      sizes="96x96"
+    />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+    <link rel="shortcut icon" href="/assets/favicon.ico" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/assets/apple-touch-icon.png"
+    />
+    <meta name="apple-mobile-web-app-title" content="Finanzas" />
+    <link rel="manifest" href="/assets/site.webmanifest" />
+  </head>
+  <body>
+    <!-- Usamos un contenedor con width limitado para dar buenos márgenes a los lados -->
+    <div class="main-wrapper my-4">
+      <!-- HEADER -->
+      <div
+        class="header-bar d-flex justify-content-between align-items-center mb-4 p-3 rounded-4 shadow-sm"
+      >
+        <div class="d-flex align-items-center">
+          <div class="logo-icon me-3"><i class="fa-solid fa-wallet"></i></div>
+          <div>
+            <h4 class="fw-bold m-0">Mi Dashboard</h4>
+            <!-- Indicador de estado -->
+            <small
+              id="statusIndicator"
+              class="text-muted"
+              style="font-size: 0.7rem"
+            >
+              <i class="fa-solid fa-hard-drive"></i> Modo Local (Invitado)
+            </small>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <button
+            class="btn btn-theme-toggle rounded-circle"
+            onclick="toggleDarkMode()"
+            title="Tema"
+          >
+            <i class="fa-solid fa-moon" id="iconMode"></i>
+          </button>
+
+          <!-- Botón Login / Logout Dinámico -->
+          <div id="authButtons">
+            <button
+              class="btn btn-primary btn-sm rounded-pill px-3 fw-bold"
+              data-bs-toggle="modal"
+              data-bs-target="#modalAuth"
+            >
+              <i class="fa-solid fa-cloud-arrow-up"></i> Sincronizar
+            </button>
+          </div>
+
+          <!-- Menú Config -->
+          <div class="dropdown ms-2">
+            <button
+              class="btn btn-settings rounded-circle"
+              type="button"
+              data-bs-toggle="dropdown"
+            >
+              <i class="fa-solid fa-gear"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2">
+              <li>
+                <h6 class="dropdown-header small text-uppercase">Opciones</h6>
+              </li>
+              <li>
+                <button class="dropdown-item rounded" data-bs-toggle="modal" data-bs-target="#prefsModal">
+                  <i class="fa-solid fa-eye me-2"></i>Preferencias (Visibilidad)
+                </button>
+              </li>
+              <li id="menuChangePassword" style="display: none;">
+                <button class="dropdown-item rounded" onclick="changePasswordLoggedIn()">
+                  <i class="fa-solid fa-key me-2"></i>Cambiar Contraseña
+                </button>
+              </li>
+              <li>
+                <button class="dropdown-item rounded" onclick="exportData()">
+                  <i class="fa-solid fa-download me-2"></i>Descargar JSON
+                </button>
+              </li>
+              <li>
+                <button
+                  class="dropdown-item rounded"
+                  onclick="document.getElementById('importFile').click()"
+                >
+                  <i class="fa-solid fa-upload me-2"></i>Cargar JSON
+                </button>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <button
+                  class="dropdown-item rounded text-danger fw-bold"
+                  onclick="resetData()"
+                >
+                  <i class="fa-solid fa-trash-can me-2"></i>Borrar Todo
+                </button>
+              </li>
+            </ul>
+          </div>
+          <input
+            type="file"
+            id="importFile"
+            style="display: none"
+            onchange="importData(this)"
+          />
+        </div>
+      </div>
+
+      <!-- TARJETAS: Patrimonio Neto + 9 cuentas (5 por fila) -->
+      <div class="row justify-content-center g-3 mb-4" id="tarjetas-container">
+        <!-- Fila 1: Patrimonio Neto + 4 bancos (5 por fila) -->
+        <div class="col-md-6 col-lg-4 col-xl-2">
+          <div class="card bg-total text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Patrimonio Neto
+              </h6>
+              <h2 class="fw-bold mt-2 mb-0" id="lblTotal">$0.00</h2>
+              <i class="fa-solid fa-scale-balanced card-icon-bg"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Pichincha" onclick="filterByAccount('Pichincha')" style="cursor:pointer">
+          <div class="card bg-pichincha h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Banco Pichincha
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblPichincha">$0.00</h3>
+              <img
+                src="assets/pichincha.svg"
+                class="card-logo-img"
+                onerror="this.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="DeUna" onclick="filterByAccount('DeUna')" style="cursor:pointer">
+          <div class="card bg-deuna h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                DeUna!
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblDeUna">$0.00</h3>
+              <img
+                src="assets/deuna.svg"
+                class="card-logo-img"
+                onerror="this.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Guayaquil" onclick="filterByAccount('Guayaquil')" style="cursor:pointer">
+          <div class="card bg-guayaquil h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Banco Guayaquil
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblGuayaquil">$0.00</h3>
+              <img
+                src="assets/guayaquil.png"
+                class="card-logo-img"
+                onerror="this.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="PeiGo" onclick="filterByAccount('PeiGo')" style="cursor:pointer">
+          <div class="card bg-peigo h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                PeiGo
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblPeiGo">$0.00</h3>
+              <img
+                src="assets/peigo.svg"
+                class="card-logo-img"
+                onerror="this.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Fila 2: 6 bancos más -->
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Produbanco" onclick="filterByAccount('Produbanco')" style="cursor:pointer">
+          <div class="card bg-produbanco text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Produbanco
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblProdubanco">$0.00</h3>
+              <img
+                src="assets/produbanco.svg"
+                class="card-logo-img"
+                onerror="this.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Binance" onclick="filterByAccount('Binance')" style="cursor:pointer">
+          <div class="card bg-binance h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Binance
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblBinance">$0.00</h3>
+              <img
+                src="assets/binance.svg"
+                class="card-logo-img"
+                onerror="this.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="UglyCash" onclick="filterByAccount('UglyCash')" style="cursor:pointer">
+          <div class="card bg-ugly h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Ugly Cash
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblUglyCash">$0.00</h3>
+              <img
+                src="assets/ugly.svg"
+                class="card-logo-img"
+                onerror="this.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Airtm" onclick="filterByAccount('Airtm')" style="cursor:pointer">
+          <div class="card bg-airtm text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Airtm
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblAirtm">$0.00</h3>
+              <img
+                src="assets/airtm.png"
+                class="card-logo-img"
+                onerror="this.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Efectivo" onclick="filterByAccount('Efectivo')" style="cursor:pointer">
+          <div class="card bg-efectivo text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Efectivo
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblEfectivo">$0.00</h3>
+              <img
+                src="assets/efectivo.png"
+                class="card-logo-img"
+                onerror="this.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Morse" onclick="filterByAccount('Morse')" style="cursor:pointer">
+          <div class="card bg-morse text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Morse
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblMorse">$0.00</h3>
+              <img
+                src="assets/morse.webp"
+                class="card-logo-img"
+                onerror="this.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- HAPI (BROKER) CON CHIPS DE INVERSIONES S&P 500 Y NASDAQ -->
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="Hapi" onclick="filterByAccount('Hapi')" style="cursor:pointer">
+          <div class="card bg-hapi text-white h-100 border-0">
+            <div class="card-body position-relative p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <h6 class="text-uppercase opacity-75 small fw-bold ls-1 mb-0">
+                  Hapi (Broker)
+                </h6>
+                <img
+                  src="assets/hapi.svg"
+                  style="width: 22px; height: 22px; border-radius: 6px;"
+                  onerror="this.style.display = 'none'"
+                />
+              </div>
+              <h3 class="fw-bold mt-1 mb-0" id="lblHapi">$0.00</h3>
+              <small class="text-white-50 d-block" style="font-size: 0.65rem;">Saldo Disponible</small>
+              
+              <!-- Chips de Inversiones en Hapi -->
+              <div class="hapi-chips-container">
+                <div class="hapi-chip chip-sp500" title="S&P 500 (VOO) - Clic para ver historial" onclick="event.stopPropagation(); filterByAccount('SP500');">
+                  <i class="fa-solid fa-chart-line text-success"></i>
+                  <span>S&P:</span>
+                  <span class="hapi-chip-val" id="lblSP500">$0.00</span>
+                  <span class="hapi-chip-pl pl-pos d-none" id="chipSP500PL">+0%</span>
+                </div>
+                <div class="hapi-chip chip-nasdaq" title="NASDAQ-100 (QQQ) - Clic para ver historial" onclick="event.stopPropagation(); filterByAccount('Nasdaq');">
+                  <i class="fa-solid fa-arrow-trend-up text-info"></i>
+                  <span>NAS:</span>
+                  <span class="hapi-chip-val" id="lblNasdaq">$0.00</span>
+                  <span class="hapi-chip-pl pl-pos d-none" id="chipNasdaqPL">+0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 col-xl-2 account-card" data-account="PorCobrar">
+          <div class="card bg-loans text-white h-100 border-0">
+            <div class="card-body position-relative p-4">
+              <h6 class="text-uppercase opacity-75 small fw-bold ls-1">
+                Por Cobrar
+              </h6>
+              <h3 class="fw-bold mt-2 mb-0" id="lblPorCobrar">$0.00</h3>
+              <i class="fa-solid fa-hand-holding-dollar card-icon-bg"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN CONTENT -->
+      <div class="row g-4">
+        <!-- COLUMNA IZQUIERDA (Formulario + Gráfico) -->
+        <div class="col-lg-4 col-xl-3" id="col-sidebar">
+          <!-- 1. Formulario -->
+          <div class="card card-custom mb-4 border-0">
+            <div
+              class="card-header bg-transparent fw-bold py-3 border-0 d-flex align-items-center"
+            >
+              <span class="icon-square me-2"
+                ><i class="fa-solid fa-plus"></i
+              ></span>
+              Nueva Transacción
+            </div>
+            <div class="card-body">
+              <form id="formTransaction">
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted"
+                    >Fecha</label
+                  >
+                  <input
+                    type="date"
+                    class="form-control filled-input"
+                    id="inputDate"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted"
+                    >Acción</label
+                  >
+                  <select
+                    class="form-select filled-input"
+                    id="inputType"
+                    onchange="toggleFormFields()"
+                    required
+                  >
+                    <option value="ingreso">🟢 Ingreso / Depósito</option>
+                    <option value="gasto">🔴 Gasto / Pago / Retiro</option>
+                    <option value="transfer">
+                      🔀 Transferencia entre Cuentas
+                    </option>
+                    <option value="invest">
+                      📈 Invertir en Acciones / ETFs
+                    </option>
+                    <option value="trade_profit">📈 Trading: Ganancia</option>
+                    <option value="trade_loss">📉 Trading: Pérdida</option>
+                    <option value="loan_out">
+                      💸 Prestar / Pagar (Salida)
+                    </option>
+                    <option value="loan_payment">
+                      🤝 Cobrar / Préstamo (Entrada)
+                    </option>
+                    <option value="debt_in">
+                      🟥 Asumir Deuda (Yo debo)
+                    </option>
+                    <option value="debt_payment">
+                      🟩 Pagar Mi Deuda
+                    </option>
+                  </select>
+                </div>
+
+                <!-- CUENTA ORIGEN (Desde donde sale) -->
+                <div class="mb-3" id="groupAccount">
+                  <label
+                    class="form-label small fw-bold text-muted"
+                    id="lblAccount"
+                    >Cuenta</label
+                  >
+                  <select class="form-select filled-input" id="inputAccount">
+                    <option value="Airtm">Airtm</option>
+                    <option value="Guayaquil">Banco Guayaquil</option>
+                    <option value="Pichincha">Banco Pichincha</option>
+                    <option value="Binance">Binance</option>
+                    <option value="DeUna">DeUna!</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Hapi" selected>Hapi (Broker)</option>
+                    <option value="Morse">Morse</option>
+                    <option value="Nasdaq">NASDAQ</option>
+                    <option value="PeiGo">PeiGo</option>
+                    <option value="Produbanco">Produbanco</option>
+                    <option value="SP500">S&amp;P 500</option>
+                    <option value="UglyCash">Ugly Cash</option>
+                  </select>
+                </div>
+
+                <!-- ACTIVO A COMPRAR (Solo para Invertir) -->
+                <div class="mb-3 d-none" id="groupInvestAsset">
+                  <label class="form-label small fw-bold text-muted">
+                    <i class="fa-solid fa-layer-group me-1 text-primary"></i>Activo / Acción a Comprar
+                  </label>
+                  <select class="form-select filled-input fw-bold" id="inputInvestAsset" onchange="onInvestAssetChange()">
+                    <option value="SP500">📈 S&P 500 (VOO / Vanguard 500)</option>
+                    <option value="Nasdaq">🚀 NASDAQ-100 (QQQ / Invesco)</option>
+                  </select>
+                </div>
+
+                <!-- CUENTA DESTINO (A donde llega en transferencias) -->
+                <div class="mb-3 d-none" id="groupAccountTo">
+                  <label class="form-label small fw-bold text-muted"
+                    >Hacia (Cuenta Destino)</label
+                  >
+                  <select class="form-select filled-input" id="inputAccountTo">
+                    <option value="Airtm">Airtm</option>
+                    <option value="Guayaquil">Banco Guayaquil</option>
+                    <option value="Pichincha">Banco Pichincha</option>
+                    <option value="Binance" selected>Binance</option>
+                    <option value="DeUna">DeUna!</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Hapi">Hapi (Broker)</option>
+                    <option value="Morse">Morse</option>
+                    <option value="Nasdaq">NASDAQ</option>
+                    <option value="PeiGo">PeiGo</option>
+                    <option value="Produbanco">Produbanco</option>
+                    <option value="SP500">S&amp;P 500</option>
+                    <option value="UglyCash">Ugly Cash</option>
+                  </select>
+                </div>
+
+                <!-- PRECIO DE LA ACCIÓN (Solo visible en Invertir) -->
+                <div class="mb-3 d-none" id="groupSharePrice">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label small fw-bold text-muted mb-0">
+                      <i class="fa-solid fa-tag me-1 text-primary"></i>Precio por Acción ($)
+                    </label>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none small text-primary" id="btnUseLivePrice" onclick="useLivePriceInForm()">
+                      <i class="fa-solid fa-bolt me-1"></i>Usar precio actual
+                    </button>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    class="form-control filled-input"
+                    id="inputSharePrice"
+                    placeholder="0.00"
+                  />
+                  <div class="form-text text-muted" id="sharePriceHint" style="font-size:0.72rem;"></div>
+                </div>
+
+                <!-- COMISIÓN (visible en transferencias e inversiones) -->
+                <div class="mb-3 d-none" id="groupCommission">
+                  <label class="form-label small fw-bold text-muted">
+                    <i class="fa-solid fa-receipt me-1 text-warning"></i>Comisión del Broker ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="form-control filled-input"
+                    id="inputCommission"
+                    placeholder="0.00"
+                  />
+                  <div class="form-text" id="commissionHint" style="font-size:0.75rem;"></div>
+                </div>
+
+                <div class="mb-3 d-none" id="groupPerson">
+                  <label class="form-label small fw-bold text-muted"
+                    >Persona</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control filled-input"
+                    id="inputPerson"
+                    placeholder="Nombre (ej. Jeanpier)"
+                    list="personList"
+                    autocomplete="off"
+                  />
+                  <datalist id="personList"></datalist>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted"
+                    >Monto Total ($)</label
+                  >
+                  <input
+                    type="number"
+                    step="0.01"
+                    class="form-control fw-bold fs-5 filled-input"
+                    id="inputAmount"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+
+                <!-- PREVIEW DE INVERSIÓN (CONFIRMACIÓN EN VIVO) -->
+                <div class="inv-preview-box d-none" id="invPreviewBox">
+                  <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-secondary border-opacity-10">
+                    <span class="small fw-bold text-uppercase" style="font-size: 0.7rem; color: #a855f7;">
+                      <i class="fa-solid fa-magnifying-glass-chart me-1"></i>Resumen de la Compra
+                    </span>
+                    <span class="badge bg-primary-subtle text-primary" id="invPreviewAssetBadge">S&P 500</span>
+                  </div>
+                  <div class="inv-preview-item">
+                    <span class="text-muted">Monto a Debitar (Hapi):</span>
+                    <span class="fw-bold" id="invPreviewTotalDebited">$0.00</span>
+                  </div>
+                  <div class="inv-preview-item">
+                    <span class="text-muted">Comisión Broker:</span>
+                    <span class="text-warning fw-bold" id="invPreviewCommission">$0.00</span>
+                  </div>
+                  <div class="inv-preview-item">
+                    <span class="text-muted">Neto a Invertir:</span>
+                    <span class="text-success fw-bold" id="invPreviewNetInvested">$0.00</span>
+                  </div>
+                  <div class="inv-preview-item">
+                    <span class="text-muted">Precio Unitario:</span>
+                    <span class="fw-bold" id="invPreviewUnitPrice">$0.00</span>
+                  </div>
+                  <div class="inv-preview-item pt-1 mt-1 border-top border-secondary border-opacity-10">
+                    <span class="fw-bold">Acciones Adquiridas:</span>
+                    <span class="inv-preview-highlight fs-6" id="invPreviewSharesCount">0.0000 shares</span>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted"
+                    >Descripción</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control filled-input"
+                    id="inputDesc"
+                    placeholder="Detalle..."
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  class="btn btn-primary w-100 fw-bold py-2 btn-gradient-primary border-0 rounded-3 shadow-sm"
+                >
+                  Guardar
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- 2. Gráfico (Ahora debajo del formulario) -->
+          <div class="card card-custom border-0">
+            <div class="card-body">
+              <h6
+                class="text-center small text-muted mb-3 fw-bold text-uppercase"
+              >
+                Distribución de Activos
+              </h6>
+              <div
+                style="
+                  height: 220px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                "
+              >
+                <canvas id="assetsChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMNA DERECHA (Tablas ocupando toda la altura) -->
+        <div class="col-lg-8 col-xl-9" id="col-main-content">
+          <div class="card card-custom border-0 h-100">
+            <div class="card-header bg-transparent border-bottom p-3">
+              <ul
+                class="nav nav-pills card-header-pills"
+                id="mainTab"
+                role="tablist"
+              >
+                <li class="nav-item">
+                  <button
+                    class="nav-link active fw-bold"
+                    data-bs-toggle="pill"
+                    data-bs-target="#tab-historial"
+                  >
+                    <i class="fa-solid fa-list-check me-2"></i>Historial
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button
+                    class="nav-link fw-bold"
+                    data-bs-toggle="pill"
+                    data-bs-target="#tab-prestamos"
+                  >
+                    <i class="fa-solid fa-user-group me-2"></i>Deudas Activas
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button
+                    class="nav-link fw-bold"
+                    data-bs-toggle="pill"
+                    data-bs-target="#tab-resumen"
+                  >
+                    <i class="fa-solid fa-chart-pie me-2"></i>Resumen
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button
+                    class="nav-link fw-bold"
+                    data-bs-toggle="pill"
+                    data-bs-target="#tab-proyeccion"
+                    id="tabBtnProyeccion"
+                  >
+                    <i class="fa-solid fa-arrow-trend-up me-2"></i>Proyección
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="tab-content h-100">
+                <!-- TABLA HISTORIAL -->
+                <div class="tab-pane fade show active h-100" id="tab-historial">
+                  <div class="p-3 border-bottom d-flex align-items-center">
+                    <span class="me-2 fw-bold text-muted small"
+                      ><i class="fa-solid fa-filter me-1"></i>Filtrar:</span
+                    >
+                    <select
+                      id="filterAccount"
+                      class="form-select form-select-sm w-auto filled-input"
+                      onchange="
+                        currentPage = 1;
+                        renderTable();
+                      "
+                    >
+                      <option value="all">Todo</option>
+                      <option value="Airtm">Airtm</option>
+                      <option value="Guayaquil">Banco Guayaquil</option>
+                      <option value="Pichincha">Banco Pichincha</option>
+                      <option value="Binance">Binance</option>
+                      <option value="DeUna">DeUna!</option>
+                      <option value="Efectivo">Efectivo</option>
+                      <option value="Hapi">Hapi (Broker)</option>
+                      <option value="Morse">Morse</option>
+                      <option value="Nasdaq">NASDAQ</option>
+                      <option value="PeiGo">PeiGo</option>
+                      <option value="Produbanco">Produbanco</option>
+                      <option value="SP500">S&amp;P 500</option>
+                      <option value="UglyCash">Ugly Cash</option>
+                    </select>
+                  </div>
+
+                  <div class="table-responsive h-100">
+                    <table
+                      class="table table-hover align-middle mb-0 custom-table"
+                    >
+                      <thead>
+                        <tr>
+                          <th class="ps-4">Fecha</th>
+                          <th>Cuenta</th>
+                          <th>Detalle</th>
+                          <th>Tipo</th>
+                          <th class="text-end">Monto</th>
+                          <th class="text-center pe-4">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody id="transactionTableBody"></tbody>
+                    </table>
+
+                    <!-- CONTROLES DE PAGINACIÓN -->
+                    <div
+                      id="paginationControls"
+                      class="d-flex justify-content-between align-items-center p-3 border-top"
+                      style="display: none !important"
+                    >
+                      <button
+                        class="btn btn-sm btn-outline-secondary"
+                        id="btnPrev"
+                        onclick="prevPage()"
+                      >
+                        <i class="fa-solid fa-chevron-left"></i> Anterior
+                      </button>
+
+                      <span class="small fw-bold text-muted" id="pageIndicator"
+                        >Página 1</span
+                      >
+
+                      <button
+                        class="btn btn-sm btn-outline-secondary"
+                        id="btnNext"
+                        onclick="nextPage()"
+                      >
+                        Siguiente <i class="fa-solid fa-chevron-right"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TABLA DEUDORES -->
+                <div class="tab-pane fade p-4" id="tab-prestamos">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Listado de Personas</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="window.scrollTo(0,0); document.getElementById('inputType').value='debt_in'; toggleFormFields(); document.getElementById('inputPerson').focus();">
+                      <i class="fa-solid fa-plus me-1"></i>Agregar Deuda
+                    </button>
+                  </div>
+                  <div class="row g-3" id="debtCardsContainer"></div>
+                  <div
+                    id="noDebtsMsg"
+                    class="text-center text-muted py-5"
+                    style="display: none"
+                  >
+                    <div class="mb-3">
+                      <i class="fa-solid fa-thumbs-up fa-3x opacity-25"></i>
+                    </div>
+                    <p>¡Todo en orden! Nadie te debe dinero actualmente.</p>
+                  </div>
+                </div>
+
+                <!-- TABLA RESUMEN -->
+                <div class="tab-pane fade p-4" id="tab-resumen">
+                  <!-- FILTROS -->
+                  <div class="row g-3 mb-4 align-items-end">
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold text-muted">Fecha Inicio</label>
+                      <input type="date" id="summaryStartDate" class="form-control form-control-sm filled-input">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold text-muted">Fecha Fin</label>
+                      <input type="date" id="summaryEndDate" class="form-control form-control-sm filled-input">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-bold text-muted">Cuenta</label>
+                      <select id="summaryAccount" class="form-select form-select-sm filled-input" onchange="updateSummary()">
+                        <option value="all">Todas las Cuentas</option>
+                        <option value="Pichincha">Banco Pichincha</option>
+                        <option value="DeUna">DeUna!</option>
+                        <option value="Guayaquil">Banco Guayaquil</option>
+                        <option value="PeiGo">PeiGo</option>
+                        <option value="Produbanco">Produbanco</option>
+                        <option value="Binance">Binance</option>
+                        <option value="UglyCash">Ugly Cash</option>
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Hapi">Hapi (Broker)</option>
+                        <option value="Airtm">Airtm</option>
+                        <option value="Morse">Morse</option>
+                        <option value="SP500">S&amp;P 500</option>
+                        <option value="Nasdaq">NASDAQ</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3 d-flex gap-2 justify-content-end">
+                      <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="setSummaryPeriod('this_month')">Este Mes</button>
+                      <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="setSummaryPeriod('last_month')">Mes Anterior</button>
+                      <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setSummaryPeriod('all')">Todo</button>
+                    </div>
+                  </div>
+
+                  <!-- TARJETAS DE INDICADORES -->
+                  <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                      <div class="card bg-success text-white border-0 shadow-sm rounded-3">
+                        <div class="card-body p-3">
+                          <h6 class="text-uppercase opacity-75 small fw-bold mb-1">Ingresos del Periodo</h6>
+                          <h4 class="fw-bold mb-0" id="summaryIncome">$0.00</h4>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="card bg-danger text-white border-0 shadow-sm rounded-3">
+                        <div class="card-body p-3">
+                          <h6 class="text-uppercase opacity-75 small fw-bold mb-1">Gastos del Periodo</h6>
+                          <h4 class="fw-bold mb-0" id="summaryExpenses">$0.00</h4>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="card border-0 shadow-sm rounded-3" id="summaryNetCard">
+                        <div class="card-body p-3">
+                          <h6 class="text-uppercase text-muted small fw-bold mb-1">Flujo Neto</h6>
+                          <h4 class="fw-bold mb-0" id="summaryNet">$0.00</h4>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- SEGUNDA SECCIÓN DE INDICADORES (Trading & Deudas) -->
+                  <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                      <div class="card card-custom border-0 shadow-sm h-100 rounded-3">
+                        <div class="card-body p-3">
+                          <h6 class="fw-bold text-muted small text-uppercase mb-3"><i class="fa-solid fa-chart-line me-2 text-primary"></i>Métricas de Trading</h6>
+                          <div class="d-flex justify-content-between mb-2">
+                            <span class="small text-muted">Ganancias:</span>
+                            <span class="fw-bold text-success" id="summaryTradingProfit">$0.00</span>
+                          </div>
+                          <div class="d-flex justify-content-between mb-2">
+                            <span class="small text-muted">Pérdidas:</span>
+                            <span class="fw-bold text-danger" id="summaryTradingLoss">$0.00</span>
+                          </div>
+                          <hr class="my-2">
+                          <div class="d-flex justify-content-between fw-bold">
+                            <span class="small">Resultado Neto:</span>
+                            <span id="summaryTradingNet">$0.00</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="card card-custom border-0 shadow-sm h-100 rounded-3">
+                        <div class="card-body p-3">
+                          <h6 class="fw-bold text-muted small text-uppercase mb-3"><i class="fa-solid fa-user-group me-2 text-primary"></i>Métricas de Deudas</h6>
+                          <div class="d-flex justify-content-between mb-2">
+                            <span class="small text-muted">Dinero Prestado (Salida):</span>
+                            <span class="fw-bold text-warning" id="summaryLent">$0.00</span>
+                          </div>
+                          <div class="d-flex justify-content-between mb-2">
+                            <span class="small text-muted">Deudas Asumidas (Entrada):</span>
+                            <span class="fw-bold text-danger" id="summaryBorrowed">$0.00</span>
+                          </div>
+                          <hr class="my-2">
+                          <div class="d-flex justify-content-between fw-bold">
+                            <span class="small">Flujo de Deuda:</span>
+                            <span id="summaryDebtFlow">$0.00</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- GRÁFICOS Y ANÁLISIS DETALLADO -->
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <div class="card card-custom border-0 shadow-sm rounded-3">
+                        <div class="card-body p-3">
+                          <h6 class="fw-bold text-muted small text-uppercase mb-3 text-center">Comparativa por Cuentas</h6>
+                          <div style="height: 250px; position: relative;">
+                            <canvas id="summaryChart"></canvas>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="card card-custom border-0 shadow-sm rounded-3">
+                        <div class="card-body p-3">
+                          <h6 class="fw-bold text-muted small text-uppercase mb-3">Mayores Gastos por Concepto</h6>
+                          <div id="summaryTopExpenses" class="list-group list-group-flush" style="max-height: 250px; overflow-y: auto;">
+                            <!-- Generado dinámicamente -->
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TABLA PROYECCIÓN & REGLA DEL 4% -->
+                <div class="tab-pane fade p-4" id="tab-proyeccion">
+                  <!-- ENCABEZADO Y TRACKER EN TIEMPO REAL -->
+                  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 pb-3 border-bottom border-secondary border-opacity-10">
+                    <div>
+                      <h5 class="fw-bold mb-1 d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-primary"></i>
+                        Simulador de Proyección &amp; Libertad Financiera
+                      </h5>
+                      <p class="text-muted small mb-0">
+                        Punto de partida calculado automáticamente de tus inversiones reales. Cotizaciones en vivo para cálculo exacto de portafolio y DCA.
+                      </p>
+                    </div>
+                    
+                    <!-- WIDGET DE PRECIOS EN VIVO API -->
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                      <div class="live-ticker-badge shadow-sm" id="tickerSP500">
+                        <span class="pulse-dot"></span>
+                        <span class="text-muted small">VOO (S&P):</span>
+                        <strong class="text-success" id="lblLivePriceSP500">$540.00</strong>
+                        <span class="badge bg-success-subtle text-success p-1 small" id="lblLiveChangeSP500">+0.0%</span>
+                      </div>
+                      <div class="live-ticker-badge shadow-sm" id="tickerNasdaq">
+                        <span class="pulse-dot"></span>
+                        <span class="text-muted small">QQQ (NAS):</span>
+                        <strong class="text-info" id="lblLivePriceNasdaq">$490.00</strong>
+                        <span class="badge bg-info-subtle text-info p-1 small" id="lblLiveChangeNasdaq">+0.0%</span>
+                      </div>
+                      <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" id="btnRefreshPrices" onclick="fetchLivePrices(true)" title="Actualizar cotizaciones en vivo">
+                        <i class="fa-solid fa-arrows-rotate me-1" id="iconRefreshPrices"></i>Actualizar
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- LAYOUT DE 2 COLUMNAS (CONTROLES A LA IZQUIERDA, RESULTADOS Y GRÁFICO A LA DERECHA) -->
+                  <div class="row g-4 align-items-start">
+                    
+                    <!-- COLUMNA IZQUIERDA: VARIABLES & CONTROLES (COMPACTA) -->
+                    <div class="col-12 col-lg-4 col-xl-4">
+                      <!-- HORIZONTE DE TIEMPO (SLIDER PRINCIPAL CON ESCALA GRADUADA) -->
+                      <div class="proj-horizon-card mb-4 p-3 p-xl-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                          <label class="form-label fw-bold mb-0 small text-uppercase text-muted">
+                            <i class="fa-solid fa-hourglass-half me-2 text-primary"></i>Horizonte de Tiempo:
+                          </label>
+                          <span class="badge bg-primary fs-6 px-3 py-1 rounded-pill shadow-sm" id="lblProjYears">10 Años</span>
+                        </div>
+                        <input type="range" class="slider-custom slider-years w-100" id="sliderProjYears" min="1" max="40" step="1" value="10" oninput="onProjectionInputChange()">
+                        <div class="d-flex justify-content-between mt-2 slider-ticks">
+                          <span role="button" title="1 Año" onclick="setProjectionYears(1)">1a</span>
+                          <span role="button" title="5 Años" onclick="setProjectionYears(5)">5a</span>
+                          <span role="button" title="10 Años" onclick="setProjectionYears(10)">10a</span>
+                          <span role="button" title="15 Años" onclick="setProjectionYears(15)">15a</span>
+                          <span role="button" title="20 Años" onclick="setProjectionYears(20)">20a</span>
+                          <span role="button" title="30 Años" onclick="setProjectionYears(30)">30a</span>
+                          <span role="button" title="40 Años" onclick="setProjectionYears(40)">40a</span>
+                        </div>
+                      </div>
+
+                      <!-- PANEL S&P 500 -->
+                      <div class="p-3 p-xl-4 inv-panel-sp500 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                          <span class="badge badge-sp500-tag px-3 py-2 rounded-pill">
+                            <i class="fa-solid fa-chart-line me-1"></i>S&amp;P 500 (VOO)
+                          </span>
+                          <span class="badge bg-success-subtle text-success border border-success border-opacity-25 small" id="sp500HistoryInfoBadge">Punto de partida</span>
+                        </div>
+
+                        <!-- CAPITAL ACTUAL DETECTADO DE LA BASE DE DATOS -->
+                        <div class="p-3 mb-3 rounded-3" style="background: rgba(16, 185, 129, 0.08); border: 1.5px dashed rgba(16, 185, 129, 0.35);">
+                          <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                              <small class="text-muted text-uppercase fw-bold d-block" style="font-size:0.7rem;">Valor Actual en Portafolio</small>
+                              <h4 class="fw-bold text-success mb-0" id="sp500RealBalDisplay">$0.00</h4>
+                            </div>
+                            <small class="text-muted text-end small" id="sp500DepositsCountText">0 compras registradas</small>
+                          </div>
+                          <!-- MÉTRICAS DCA S&P 500 -->
+                          <div class="pt-2 border-top border-success border-opacity-25 d-flex justify-content-between text-muted" style="font-size:0.72rem;">
+                            <span>Acciones: <strong class="text-success" id="sp500SharesDisplay">0.00</strong></span>
+                            <span>Costo Prom: <strong id="sp500AvgCostDisplay">$0.00</strong></span>
+                            <span id="sp500PLDisplay" class="fw-bold text-success">+0.0%</span>
+                          </div>
+                        </div>
+
+                        <div class="mb-3">
+                          <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold text-muted mb-0">Aporte Mensual Futuro ($)</label>
+                            <span class="fw-bold text-success" id="lblProjSP500Monthly">$300.00</span>
+                          </div>
+                          <input type="number" step="10" min="0" class="form-control filled-input fw-bold mb-2" id="inputProjSP500Monthly" value="300" oninput="syncSP500MonthlyInput(this.value)">
+                          <input type="range" class="slider-custom slider-sp500 w-100" id="sliderProjSP500Monthly" min="0" max="3000" step="25" value="300" oninput="syncSP500MonthlySlider(this.value)">
+                        </div>
+
+                        <div class="mb-1">
+                          <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold text-muted mb-0">Rendimiento Anual Estimado (%)</label>
+                            <span class="fw-bold text-success" id="lblProjSP500Rate">10.0%</span>
+                          </div>
+                          <input type="range" class="slider-custom slider-sp500 w-100" id="sliderProjSP500Rate" min="4" max="25" step="0.5" value="10.0" oninput="onProjectionInputChange()">
+                          <small class="text-muted d-block mt-2" style="font-size:0.72rem;">
+                            *Promedio histórico a largo plazo del S&amp;P 500 es ~10.0% anual.
+                          </small>
+                        </div>
+                      </div>
+
+                      <!-- PANEL NASDAQ -->
+                      <div class="p-3 p-xl-4 inv-panel-nasdaq mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                          <span class="badge badge-nasdaq-tag px-3 py-2 rounded-pill">
+                            <i class="fa-solid fa-arrow-trend-up me-1"></i>NASDAQ-100 (QQQ)
+                          </span>
+                          <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 small" id="nasdaqHistoryInfoBadge">Punto de partida</span>
+                        </div>
+
+                        <!-- CAPITAL ACTUAL DETECTADO DE LA BASE DE DATOS -->
+                        <div class="p-3 mb-3 rounded-3" style="background: rgba(56, 189, 248, 0.08); border: 1.5px dashed rgba(56, 189, 248, 0.35);">
+                          <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                              <small class="text-muted text-uppercase fw-bold d-block" style="font-size:0.7rem;">Valor Actual en Portafolio</small>
+                              <h4 class="fw-bold text-info mb-0" id="nasdaqRealBalDisplay">$0.00</h4>
+                            </div>
+                            <small class="text-muted text-end small" id="nasdaqDepositsCountText">0 compras registradas</small>
+                          </div>
+                          <!-- MÉTRICAS DCA NASDAQ -->
+                          <div class="pt-2 border-top border-info border-opacity-25 d-flex justify-content-between text-muted" style="font-size:0.72rem;">
+                            <span>Acciones: <strong class="text-info" id="nasdaqSharesDisplay">0.00</strong></span>
+                            <span>Costo Prom: <strong id="nasdaqAvgCostDisplay">$0.00</strong></span>
+                            <span id="nasdaqPLDisplay" class="fw-bold text-info">+0.0%</span>
+                          </div>
+                        </div>
+
+                        <div class="mb-3">
+                          <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold text-muted mb-0">Aporte Mensual Futuro ($)</label>
+                            <span class="fw-bold text-info" id="lblProjNasdaqMonthly">$300.00</span>
+                          </div>
+                          <input type="number" step="10" min="0" class="form-control filled-input fw-bold mb-2" id="inputProjNasdaqMonthly" value="300" oninput="syncNasdaqMonthlyInput(this.value)">
+                          <input type="range" class="slider-custom slider-nasdaq w-100" id="sliderProjNasdaqMonthly" min="0" max="3000" step="25" value="300" oninput="syncNasdaqMonthlySlider(this.value)">
+                        </div>
+
+                        <div class="mb-1">
+                          <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold text-muted mb-0">Rendimiento Anual Estimado (%)</label>
+                            <span class="fw-bold text-info" id="lblProjNasdaqRate">12.5%</span>
+                          </div>
+                          <input type="range" class="slider-custom slider-nasdaq w-100" id="sliderProjNasdaqRate" min="4" max="30" step="0.5" value="12.5" oninput="onProjectionInputChange()">
+                          <small class="text-muted d-block mt-2" style="font-size:0.72rem;">
+                            *Promedio histórico de 30 años del NASDAQ es ~12.9% anual.
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- COLUMNA DERECHA: RESULTADOS, JUBILACIÓN & GRÁFICO (AMPLIA) -->
+                    <div class="col-12 col-lg-8 col-xl-8">
+                      
+                      <!-- TARJETAS DE INDICADORES (KPIS) -->
+                      <div class="row g-3 mb-4">
+                        <div class="col-6 col-sm-3">
+                          <div class="card kpi-proj-card kpi-deposited shadow-sm p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <small class="text-muted text-uppercase fw-bold" style="font-size:0.68rem;">Capital Depositado</small>
+                              <div class="kpi-icon-badge" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8;">
+                                <i class="fa-solid fa-vault"></i>
+                              </div>
+                            </div>
+                            <h4 class="fw-bold mt-1 mb-0 text-secondary" id="projDeposited">$0.00</h4>
+                            <small class="text-muted mt-1" style="font-size:0.72rem;">Tu propio dinero invertido</small>
+                          </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                          <div class="card kpi-proj-card kpi-interest shadow-sm p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <small class="text-muted text-uppercase fw-bold" style="font-size:0.68rem;">Ganancia Interés</small>
+                              <div class="kpi-icon-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                                <i class="fa-solid fa-chart-line"></i>
+                              </div>
+                            </div>
+                            <h4 class="fw-bold mt-1 mb-0 text-success" id="projInterest">$0.00</h4>
+                            <small class="text-success mt-1 fw-bold" id="projInterestPercent" style="font-size:0.72rem;">+0.0% generado</small>
+                          </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                          <div class="card kpi-proj-card kpi-total shadow-sm p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <small class="text-muted text-uppercase fw-bold" style="font-size:0.68rem;">Valor Total Final</small>
+                              <div class="kpi-icon-badge" style="background: rgba(168, 85, 247, 0.15); color: #a855f7;">
+                                <i class="fa-solid fa-sack-dollar"></i>
+                              </div>
+                            </div>
+                            <h4 class="fw-bold mt-1 mb-0 text-primary" id="projTotalFinal">$0.00</h4>
+                            <small class="text-muted mt-1" style="font-size:0.72rem;">Capital + Rendimientos</small>
+                          </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                          <div class="card kpi-proj-card kpi-multiplier shadow-sm p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <small class="text-muted text-uppercase fw-bold" style="font-size:0.68rem;">Multiplicador</small>
+                              <div class="kpi-icon-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                                <i class="fa-solid fa-bolt"></i>
+                              </div>
+                            </div>
+                            <h4 class="fw-bold mt-1 mb-0 text-warning" id="projMultiplier">1.0x</h4>
+                            <small class="text-muted mt-1" style="font-size:0.72rem;">Crecimiento total</small>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- TARJETA DESTACADA: REGLA DEL 4% (SUELDO DE JUBILACIÓN) -->
+                      <div class="card card-retirement p-4 mb-4 shadow border-0">
+                        <div class="row align-items-center g-4">
+                          <div class="col-xl-7 col-lg-12">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                              <span class="badge bg-success text-white px-2 py-1 rounded-pill small">
+                                <i class="fa-solid fa-umbrella-beach me-1"></i>Regla del 4%
+                              </span>
+                              <span class="text-white-50 small">Jubilación / Libertad Financiera</span>
+                            </div>
+                            <h6 class="text-uppercase text-white-50 small fw-bold mb-1">
+                              Tu Sueldo Mensual Vitalicio Estimado:
+                            </h6>
+                            <div class="salary-number mb-2" id="projMonthlyPension">$0.00 / mes</div>
+                            <p class="text-white-50 small mb-0" style="max-width: 520px; line-height: 1.5;">
+                              Si retiras el <strong>4% anual</strong> de tu portafolio acumulado (dividido en 12 meses), puedes vivir de tus rendimientos <strong>sin agotar tu capital</strong>, ya que la bolsa rinde más del 4% en promedio.
+                            </p>
+                          </div>
+                          <div class="col-xl-5 col-lg-12 border-start-xl border-white border-opacity-10 ps-xl-4 pt-3 pt-xl-0 border-top border-top-xl-0">
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-white border-opacity-10">
+                              <span class="text-white-50 small"><i class="fa-solid fa-calendar-check me-2 text-success"></i>Retiro Anual (4%):</span>
+                              <span class="fw-bold text-white fs-6" id="projAnnualPension">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-white border-opacity-10">
+                              <span class="text-white-50 small"><i class="fa-solid fa-shield-halved me-2 text-info"></i>Capital Intacto (96%):</span>
+                              <span class="fw-bold text-white fs-6" id="projIntactCapital">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                              <span class="text-white-50 small"><i class="fa-solid fa-hourglass-end me-2 text-warning"></i>Horizonte:</span>
+                              <span class="fw-bold text-info fs-6" id="projYearsBadge">10 Años</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- GRÁFICO DE PROYECCIÓN -->
+                      <div class="card card-custom border-0 shadow-sm p-3 mb-4">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                          <div>
+                            <h6 class="fw-bold text-muted small text-uppercase mb-0" id="projChartTitle">
+                              Curva de Crecimiento Compuesto
+                            </h6>
+                            <small class="text-muted" style="font-size:0.75rem;">
+                              El interés compuesto se acelera exponencialmente con el tiempo.
+                            </small>
+                          </div>
+                        </div>
+                        <div style="height: 340px; position: relative;">
+                          <canvas id="projectionChart"></canvas>
+                        </div>
+                      </div>
+
+                      <!-- TABLA DE EVOLUCIÓN AÑO POR AÑO (COLAPSABLE) -->
+                      <div class="accordion border-0 shadow-sm rounded-3 overflow-hidden mb-2" id="accordionEvolution">
+                        <div class="accordion-item border-0 card-custom">
+                          <h2 class="accordion-header" id="headingEvolution">
+                            <button class="accordion-button collapsed bg-transparent fw-bold small text-uppercase" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEvolution">
+                              <i class="fa-solid fa-table-list me-2 text-primary"></i>Ver desglose detallado año por año
+                            </button>
+                          </h2>
+                          <div id="collapseEvolution" class="accordion-collapse collapse" data-bs-parent="#accordionEvolution">
+                            <div class="accordion-body p-0">
+                              <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 custom-table">
+                                  <thead>
+                                    <tr>
+                                      <th class="ps-3">Año</th>
+                                      <th class="text-end">Capital Depositado</th>
+                                      <th class="text-end">S&amp;P 500</th>
+                                      <th class="text-end">NASDAQ</th>
+                                      <th class="text-end">Total Portafolio</th>
+                                      <th class="text-end text-success pe-3">Sueldo 4% (Mes)</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody id="projEvolutionTableBody">
+                                    <!-- Generado dinámicamente -->
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- FOOTER DE CRÉDITOS -->
+      <footer class="main-footer mt-5">
+        <p class="mb-1">&copy; <span id="year"></span> Dashboard Financiero.</p>
+        <p class="mb-0">
+          Desarrollado por
+          <a href="https://www.linkedin.com/in/cesar-duque/" target="_blank"
+            >Cesar Duque</a
+          >
+        </p>
+        <small class="opacity-50" style="font-size: 0.7rem"
+          >Tus datos se guardan localmente en tu dispositivo.</small
+        >
+      </footer>
+    </div>
+
+    <!-- Modal Historial de Persona -->
+    <div class="modal fade" id="modalPersonHistory" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content card-custom border-0 shadow-lg">
+          <div class="modal-header border-0 pb-2">
+            <div>
+              <h5 class="modal-title fw-bold mb-0" id="modalPersonTitle">Historial</h5>
+              <small class="text-muted" id="modalPersonSubtitle">Detalle de movimientos y ciclos de deuda</small>
+            </div>
+            <button
+              type="button"
+              class="btn-close btn-close-custom"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body p-3">
+            <!-- NAVEGACIÓN POR CICLOS DE DEUDA (PÁGINAS INTELIGENTES) -->
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3" id="personHistoryCyclesNav"></div>
+
+            <div class="table-responsive rounded-3 overflow-hidden border">
+              <table class="table table-hover mb-0 custom-table align-middle">
+                <thead class="bg-light">
+                  <tr>
+                    <th class="ps-3">Fecha</th>
+                    <th>Movimiento</th>
+                    <th>Nota</th>
+                    <th class="text-end">Monto</th>
+                    <th class="text-end pe-3">Saldo Deuda</th>
+                  </tr>
+                </thead>
+                <tbody id="personHistoryBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div
+            class="modal-footer justify-content-between border-0 pt-0 pb-3 px-3"
+          >
+            <div>
+              <span class="text-muted small d-block">Estado actual de la cuenta:</span>
+              <small class="text-muted" id="modalPersonCycleSummary"></small>
+            </div>
+            <div class="text-end">
+              <span class="fw-bold fs-4" id="modalPersonBalance">$0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- MODAL DE LOGIN / REGISTRO -->
+    <div class="modal fade" id="modalAuth" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content card-custom border-0 shadow-lg">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold">Guardar en la Nube</h5>
+            <button
+              type="button"
+              class="btn-close btn-close-custom"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body p-4 text-center">
+            <div class="mb-3 text-primary">
+              <i class="fa-solid fa-cloud fa-3x"></i>
+            </div>
+            <p class="text-muted small mb-4">
+              Inicia sesión para respaldar tus datos y usarlos en tu celular o
+              laptop.
+              <br /><b>Si tienes datos locales, se subirán a tu cuenta.</b>
+            </p>
+
+            <form id="authForm">
+              <div class="mb-3">
+                <input
+                  type="email"
+                  id="authEmail"
+                  class="form-control filled-input"
+                  placeholder="Correo electrónico"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <input
+                  type="password"
+                  id="authPass"
+                  class="form-control filled-input"
+                  placeholder="Contraseña (mín. 6 letras)"
+                  required
+                />
+              </div>
+
+              <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary fw-bold">
+                  Iniciar Sesión
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  onclick="registerUser()"
+                >
+                  Crear Cuenta Nueva
+                </button>
+              </div>
+              <div class="mt-3 text-center">
+                <a href="#" class="small text-muted text-decoration-none" onclick="forgotPassword(event)">¿Olvidaste tu contraseña?</a>
+              </div>
+            </form>
+            <p
+              class="mt-3 small text-danger fw-bold"
+              id="authError"
+              style="display: none"
+            ></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREFS MODAL -->
+    <div class="modal fade" id="prefsModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold">Visibilidad de Cuentas</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-muted mb-3">Marca las cuentas/tarjetas que deseas MOSTRAR en tu panel principal.</p>
+            <div class="row g-2" id="prefsCheckboxContainer">
+              <!-- Generado dinamicamente desde JS -->
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-primary px-4 rounded-pill" data-bs-dismiss="modal" onclick="savePreferences()">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
