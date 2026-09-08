@@ -233,10 +233,10 @@ export function TransactionForm({ defaultAccountId, onSuccess, onCancelEdit, isC
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Cuentas visibles (no archivadas)
+  // Cuentas visibles (no archivadas, sin "Por Cobrar")
   const visibleAccounts = useMemo(() => {
-    const vis = accounts.filter((a) => !a.is_archived);
-    return vis.length > 0 ? vis : accounts;
+    const vis = accounts.filter((a) => !a.is_archived && a.code !== 'por_cobrar');
+    return vis.length > 0 ? vis : accounts.filter((a) => a.code !== 'por_cobrar');
   }, [accounts]);
 
   // Inicializar o actualizar cuenta cuando cambia defaultAccountId o visibleAccounts

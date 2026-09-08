@@ -160,11 +160,29 @@ export function getTransactionTypeMeta(tx: Transaction): TransactionTypeMeta {
 
   // 5. Transferencias entre cuentas
   if (['transfer', 'transferencia', 'transfer_in', 'transfer_out'].includes(tx.type)) {
+    if (tx.type === 'transfer_in') {
+      return {
+        label: 'Transferencia (Entrada)',
+        bg: 'bg-emerald-500/15',
+        text: 'text-emerald-300',
+        border: 'border-emerald-500/30',
+        category: 'transfer',
+      };
+    }
+    if (tx.type === 'transfer_out') {
+      return {
+        label: 'Transferencia (Salida)',
+        bg: 'bg-rose-500/15',
+        text: 'text-rose-300',
+        border: 'border-rose-500/30',
+        category: 'transfer',
+      };
+    }
     return {
       label: 'Transferencia',
-      bg: 'bg-blue-500/15',
-      text: 'text-blue-300',
-      border: 'border-blue-500/30',
+      bg: 'bg-cyan-500/15',
+      text: 'text-cyan-300',
+      border: 'border-cyan-500/30',
       category: 'transfer',
     };
   }
@@ -283,6 +301,9 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
         .sort((a, b) => {
           const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
           if (dateDiff !== 0) return dateDiff;
+          const fsA = Number(a.metadata?.firestore_id) || 0;
+          const fsB = Number(b.metadata?.firestore_id) || 0;
+          if (fsA && fsB && fsA !== fsB) return fsA - fsB;
           return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         });
 
@@ -367,6 +388,9 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
         .sort((a, b) => {
           const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
           if (dateDiff !== 0) return dateDiff;
+          const fsA = Number(a.metadata?.firestore_id) || 0;
+          const fsB = Number(b.metadata?.firestore_id) || 0;
+          if (fsA && fsB && fsA !== fsB) return fsA - fsB;
           return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         });
 
@@ -535,6 +559,9 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
     return [...filteredTransactions].sort((a, b) => {
       const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
       if (dateDiff !== 0) return dateDiff;
+      const fsA = Number(a.metadata?.firestore_id) || 0;
+      const fsB = Number(b.metadata?.firestore_id) || 0;
+      if (fsA && fsB && fsA !== fsB) return fsB - fsA;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
   }, [filteredTransactions]);
@@ -656,7 +683,7 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
           }}
           className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
             filterType === 'transferencia'
-              ? 'bg-blue-600/40 text-blue-200 border border-blue-400/60 shadow-md shadow-blue-500/20'
+              ? 'bg-cyan-600/40 text-cyan-200 border border-cyan-400/60 shadow-md shadow-cyan-500/20'
               : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/[0.06]'
           }`}
         >
@@ -1011,18 +1038,49 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
 
               const isDebtAction = ['debt_in', 'debt_service_in'].includes(tx.type);
 
-              // Para compras de acciones: título compacto "Compra 0.2052 acc"
+              // Badge dinámico para transferencias contextualizadas por cuenta
+              let effectiveBadge = { ...typeBadge };
+              if (isTransferIn && !['ingreso', 'trade_profit', 'loan_payment'].includes(tx.type)) {
+                effectiveBadge = {
+                  label: 'Transferencia (Entrada)',
+                  bg: 'bg-emerald-500/15',
+                  text: 'text-emerald-300',
+                  border: 'border-emerald-500/30',
+                  category: 'transfer',
+                };
+              } else if (isTransferOut && !['gasto', 'trade_loss', 'loan_out', 'debt_payment'].includes(tx.type)) {
+                effectiveBadge = {
+                  label: 'Transferencia (Salida)',
+                  bg: 'bg-rose-500/15',
+                  text: 'text-rose-300',
+                  border: 'border-rose-500/30',
+                  category: 'transfer',
+                };
+              }
+
+              // Estilo de la tarjeta de transacción según Entrada / Salida / Deuda / Transferencia neutral
+              const cardColorStyle = isIncome
+                ? 'bg-emerald-950/20 hover:bg-emerald-950/35 border-white/[0.08] hover:border-emerald-500/30 border-l-4 border-l-emerald-500/80 hover:border-l-emerald-400 shadow-sm shadow-emerald-950/10'
+                : isExpense
+                ? 'bg-rose-950/20 hover:bg-rose-950/35 border-white/[0.08] hover:border-rose-500/30 border-l-4 border-l-rose-500/80 hover:border-l-rose-400 shadow-sm shadow-rose-950/10'
+                : isDebtAction
+                ? 'bg-amber-950/20 hover:bg-amber-950/35 border-white/[0.08] hover:border-amber-500/30 border-l-4 border-l-amber-500/80 hover:border-l-amber-400 shadow-sm shadow-amber-950/10'
+                : 'bg-cyan-950/20 hover:bg-cyan-950/35 border-white/[0.08] hover:border-cyan-500/30 border-l-4 border-l-cyan-500/80 hover:border-l-cyan-400 shadow-sm shadow-cyan-950/10';
+
+              // Para compras de acciones: título compacto con acciones y activo
               const stockShares = stockLedgers[tx.id]?.shares;
+              const investAssetLabel = tx.metadata?.investment_asset === 'sp500' ? 'S&P 500 (VOO)' : tx.metadata?.investment_asset === 'nasdaq' ? 'NASDAQ-100 (QQQ)' : null;
+              const cleanNote = (tx.note || '').replace(/\s*-\s*$/, '').trim();
               const displayTitle =
                 isInvestPurchase && stockShares
-                  ? `Compra ${stockShares.toFixed(4)} acc`
-                  : tx.note ||
+                  ? `Inversión en ${investAssetLabel || 'Broker'}`
+                  : isInvestPurchase
+                  ? `Inversión en ${investAssetLabel || 'Broker'}`
+                  : cleanNote ||
                     (isTransferIn || isTransferOut
                       ? 'Transferencia'
                       : isInvestOutflow
                       ? 'Inversión en Broker'
-                      : isInvestPurchase
-                      ? 'Compra de Acciones'
                       : isIncome
                       ? 'Ingreso registrado'
                       : 'Gasto registrado');
@@ -1033,7 +1091,7 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
               return (
                 <div
                   key={tx.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl bg-white/[0.035] hover:bg-white/[0.07] border border-white/[0.08] hover:border-white/[0.18] shadow-sm transition-all duration-200"
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl border shadow-sm transition-all duration-200 ${cardColorStyle}`}
                 >
                   {/* Lado Izquierdo: Fecha (Izquierda) + Divisor + Icono + Detalle/Cuenta */}
                   <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
@@ -1061,11 +1119,15 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
                           ? 'bg-orange-500/20 border-orange-500/30 text-orange-400'
                           : isInvestPurchase || isInvestOutflow
                           ? 'bg-purple-500/20 border-purple-500/30 text-purple-400'
-                          : isTransferIn || isTransferOut
-                          ? 'bg-blue-500/20 border-blue-500/30 text-blue-400'
+                          : isTransferIn
+                          ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400 shadow-sm shadow-emerald-500/10'
+                          : isTransferOut
+                          ? 'bg-rose-500/20 border-rose-500/30 text-rose-400 shadow-sm shadow-rose-500/10'
                           : isExpense
                           ? 'bg-rose-500/20 border-rose-500/30 text-rose-400'
-                          : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                          : isIncome
+                          ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                          : 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400'
                       }`}
                     >
                       {typeBadge.isLoanOut ? (
@@ -1079,11 +1141,13 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
                       ) : isTransferIn ? (
                         <ArrowUpRight className="w-5 h-5" />
                       ) : isTransferOut ? (
-                        <ArrowLeftRight className="w-5 h-5" />
+                        <ArrowDownRight className="w-5 h-5" />
                       ) : isExpense ? (
                         <ArrowDownRight className="w-5 h-5" />
-                      ) : (
+                      ) : isIncome ? (
                         <ArrowUpRight className="w-5 h-5" />
+                      ) : (
+                        <ArrowLeftRight className="w-5 h-5" />
                       )}
                     </div>
 
@@ -1093,27 +1157,20 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
                         <span className="text-xs sm:text-sm font-bold text-white truncate max-w-full">
                           {displayTitle}
                         </span>
-                        {/* Badge tipo — para compras de acciones mostramos pills de precio/comisión en su lugar */}
-                        {!isInvestPurchase && (
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-xs ${typeBadge.bg} ${typeBadge.text} ${typeBadge.border}`}>
-                            {typeBadge.label}
-                          </span>
-                        )}
-                        {/* Para compras de acciones: pills de precio unitario y comisión */}
-                        {isInvestPurchase && txSharePrice && txSharePrice > 0 && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-700/60 text-slate-300 border border-slate-500/30">
-                            c/u {formatCurrency(txSharePrice)}
-                          </span>
-                        )}
+                        {/* Badge tipo — siempre visible para todas las transacciones */}
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-xs ${effectiveBadge.bg} ${effectiveBadge.text} ${effectiveBadge.border}`}>
+                          {effectiveBadge.label}
+                        </span>
+                        {/* Para compras de acciones: pill de comisión si aplica */}
                         {isInvestPurchase && txCommission > 0 && (
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-rose-900/40 text-rose-300 border border-rose-500/25">
                             comisión {formatCurrency(txCommission)}
                           </span>
                         )}
-                        {/* Chip NASDAQ/SP500 solo para no-inversiones (ya que la cuenta muestra el activo) */}
-                        {!isInvestPurchase && tx.metadata?.investment_asset && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                            {tx.metadata.investment_asset.toUpperCase()}
+                        {/* Pill de acciones para compras */}
+                        {isInvestPurchase && stockShares && stockShares > 0 && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-700/60 text-slate-300 border border-slate-500/30">
+                            {stockShares.toFixed(4)} acc
                           </span>
                         )}
                         {tx.metadata?.person && (
@@ -1127,26 +1184,23 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
                       {/* Fila de Cuenta / Banco con su Logo */}
                       <div className="flex items-center gap-2 text-xs text-slate-400 mt-1 flex-wrap">
                         {isInvestPurchase ? (
-                          <>
-                            <span className="inline-flex items-center gap-1.5 font-semibold text-purple-300">
-                              <img src="/assets/hapi.svg" alt="Hapi" className="w-3.5 h-3.5 object-contain shrink-0" />
-                              {tx.metadata?.investment_asset === 'sp500' ? 'S&P 500 (VOO)' : tx.metadata?.investment_asset === 'nasdaq' ? 'NASDAQ-100 (QQQ)' : 'Activo de Inversión'}
-                            </span>
-                            {/* Chip "Invertido Total" en el lado izquierdo, junto a la cuenta */}
-                            {stockInfo && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-900/50 text-indigo-300 border border-indigo-500/30">
-                                <span className="text-indigo-400">&#9650;</span>
-                                Invertido total: <strong className="text-white ml-0.5">{formatCurrency(stockInfo.runningInvested)}</strong>
-                              </span>
+                          <span className="inline-flex items-center gap-1.5 font-semibold text-purple-300">
+                            <img src="/assets/hapi.svg" alt="Hapi" className="w-3.5 h-3.5 object-contain shrink-0" />
+                            Hapi (Broker)
+                            {investAssetLabel && (
+                              <>
+                                <span className="text-purple-400 font-bold text-[11px]">&#10132;</span>
+                                <span>{investAssetLabel}</span>
+                              </>
                             )}
-                          </>
+                          </span>
                         ) : isInvestOutflow ? (
                           <span className="inline-flex items-center gap-1.5 flex-wrap">
                             {renderAccountBadge(tx.account_id)}
                             <span className="text-purple-400 font-bold text-[11px]">&#10132;</span>
                             <span className="inline-flex items-center gap-1 font-semibold text-purple-300">
                               <TrendingUp className="w-3 h-3 text-purple-400 shrink-0" />
-                              {tx.metadata?.investment_asset === 'sp500' ? 'S&P 500 (VOO)' : tx.metadata?.investment_asset === 'nasdaq' ? 'NASDAQ-100 (QQQ)' : 'Broker'}
+                              {investAssetLabel || 'Broker'}
                             </span>
                           </span>
                         ) : (

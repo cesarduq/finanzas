@@ -1,22 +1,14 @@
 import React, { useState } from 'react';
-import { Users, Plus, ArrowUpRight, ArrowDownRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Users, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
 import { Debt } from '../../types/database';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { DebtDetailModal } from './DebtDetailModal';
-import { ModalShell } from '../ui/ModalShell';
 
 export function DebtsView() {
-  const { debts, createDebt } = useFinance();
+  const { debts } = useFinance();
   const [debtTypeFilter, setDebtTypeFilter] = useState<'me_deben' | 'debo'>('me_deben');
   const [selectedDebt, setSelectedDebt] = useState<Debt | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-
-  // Estados para nueva deuda
-  const [newPersonName, setNewPersonName] = useState('');
-  const [newAmount, setNewAmount] = useState('');
-  const [newNote, setNewNote] = useState('');
-  const [loading, setLoading] = useState(false);
 
   // Métricas totales
   const totalMeDeben = debts
@@ -29,19 +21,6 @@ export function DebtsView() {
 
   const filteredDebts = debts.filter((d) => d.type === debtTypeFilter);
 
-  const handleCreateDebt = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const num = parseFloat(newAmount);
-    if (!newPersonName.trim() || isNaN(num) || num <= 0) return;
-
-    setLoading(true);
-    await createDebt(newPersonName.trim(), debtTypeFilter, num, newNote);
-    setLoading(false);
-    setNewPersonName('');
-    setNewAmount('');
-    setNewNote('');
-    setShowCreateModal(false);
-  };
 
   return (
     <div className="w-full space-y-6">
@@ -111,14 +90,7 @@ export function DebtsView() {
             </button>
           </div>
 
-          {/* Botón Crear Nueva Deuda */}
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-600/25 transition-all duration-200 hover:scale-105 active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nueva Deuda / Persona</span>
-          </button>
+
         </div>
 
         {/* Lista de Personas / Deudas */}
@@ -191,78 +163,6 @@ export function DebtsView() {
         />
       )}
 
-      {/* Modal Crear Nueva Deuda */}
-      {showCreateModal && (
-        <ModalShell onClose={() => setShowCreateModal(false)} maxWidth="28rem">
-          <div className="relative p-6 text-white">
-            <h3 className="text-lg font-black font-display mb-4">
-              Registrar Nueva Deuda ({debtTypeFilter === 'me_deben' ? 'Me Deben' : 'Le Debo'})
-            </h3>
-
-            <form onSubmit={handleCreateDebt} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                  Nombre de la Persona
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. Carlos Mendoza"
-                  value={newPersonName}
-                  onChange={(e) => setNewPersonName(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-black/40 border border-white/15 rounded-xl text-sm text-white outline-none focus:border-cyan-400"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                  Monto Inicial ($ USD)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  placeholder="0.00"
-                  value={newAmount}
-                  onChange={(e) => setNewAmount(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-black/40 border border-white/15 rounded-xl text-lg font-black text-white outline-none focus:border-cyan-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                  Nota / Concepto (Opcional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej. Préstamo personal para reparación"
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-black/40 border border-white/15 rounded-xl text-sm text-white outline-none focus:border-cyan-400"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-cyan-500/25"
-                >
-                  {loading ? 'Creando...' : 'Crear Registro'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </ModalShell>
-      )}
     </div>
   );
 }

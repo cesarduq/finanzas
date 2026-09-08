@@ -2,12 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   X,
-  Plus,
   CheckCircle2,
   List,
   ArrowDownLeft,
   ArrowUpRight,
-  DollarSign,
   HandCoins,
   Banknote,
 } from 'lucide-react';
@@ -98,13 +96,7 @@ function getMovementBadge(mov: DebtMovementProcessed, debt: Debt) {
 }
 
 export function DebtDetailModal({ debt, onClose }: DebtDetailModalProps) {
-  const { debtPayments, addDebtPayment } = useFinance();
-  const [newAmount, setNewAmount] = useState('');
-  const [newType, setNewType] = useState<'abono' | 'cargo'>('abono');
-  const [newNote, setNewNote] = useState('');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { debtPayments } = useFinance();
 
   // Filtrar pagos de esta persona/deuda
   const relatedPayments = useMemo(
@@ -127,34 +119,6 @@ export function DebtDetailModal({ debt, onClose }: DebtDetailModalProps) {
 
   const totalCycles = cycles.length;
 
-  const handleAddPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const num = parseFloat(newAmount);
-    if (isNaN(num) || num <= 0) {
-      setError('Ingresa un monto válido mayor a 0');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    const res = await addDebtPayment({
-      debt_id: debt.id,
-      amount: num,
-      type: newType,
-      note: newNote,
-    });
-
-    setLoading(false);
-    if (res.error) {
-      setError(res.error);
-    } else {
-      setNewAmount('');
-      setNewNote('');
-      setShowAddForm(false);
-      setSelectedCycleIndex(0); // Volver al ciclo activo
-    }
-  };
 
   return (
     <ModalShell onClose={onClose} maxWidth="64rem" maxHeight="92vh">
@@ -332,79 +296,8 @@ export function DebtDetailModal({ debt, onClose }: DebtDetailModalProps) {
             )}
           </div>
 
-          {/* Formulario para Registrar Nuevo Movimiento (expandible/compacto) */}
+          {/* Footer de Saldo */}
           <div className="pt-3 border-t border-white/10 shrink-0">
-            {error && (
-              <div className="p-2 mb-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold">
-                {error}
-              </div>
-            )}
-
-            {showAddForm ? (
-              <form
-                onSubmit={handleAddPayment}
-                className="flex flex-wrap sm:flex-nowrap items-center gap-2 mb-2 p-2.5 rounded-2xl bg-black/40 border border-white/10"
-              >
-                <select
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value as any)}
-                  className="px-3 py-2 bg-slate-900/90 border border-white/15 rounded-xl text-xs font-bold text-white outline-none focus:border-cyan-400 shrink-0"
-                >
-                  <option value="abono">Abonar / Cobro</option>
-                  <option value="cargo">Aumentar Deuda (Préstamo / Cargo)</option>
-                </select>
-
-                <div className="relative flex-1 min-w-30">
-                  <DollarSign className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    placeholder="Monto"
-                    value={newAmount}
-                    onChange={(e) => setNewAmount(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-black/50 border border-white/15 rounded-xl text-sm font-bold text-white outline-none focus:border-cyan-400"
-                  />
-                </div>
-
-                <input
-                  type="text"
-                  placeholder="Nota del movimiento"
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  className="flex-1 min-w-35 px-3 py-1.5 bg-black/50 border border-white/15 rounded-xl text-xs text-white outline-none focus:border-cyan-400"
-                />
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs shadow-md shadow-cyan-500/25 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>{loading ? 'Guardando...' : 'Guardar'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddForm(false)}
-                    className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 text-xs transition-colors cursor-pointer"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="flex justify-end mb-1">
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(true)}
-                  className="text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1 cursor-pointer py-1"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Registrar nuevo abono o préstamo</span>
-                </button>
-              </div>
-            )}
 
             {/* Footer con Resumen y Saldo Final */}
             <div className="flex items-center justify-between gap-4 pt-2">
