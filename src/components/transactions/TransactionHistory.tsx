@@ -258,7 +258,10 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
       return { name: 'S&P 500 (VOO)', isStock: true, color: 'text-purple-300' };
     }
     if (filterAccount === 'nasdaq') {
-      return { name: 'NASDAQ-100 (QQQ)', isStock: true, color: 'text-cyan-300' };
+      return { name: 'NASDAQ-100 (QQQM)', isStock: true, color: 'text-cyan-300' };
+    }
+    if (filterAccount === 'all_stocks') {
+      return { name: 'Total Acciones (VOO + QQQM)', isStock: true, color: 'text-indigo-300' };
     }
     const acc = accounts.find((a) => a.id === filterAccount);
     return {
@@ -369,12 +372,12 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
     const hapiAcc = accounts.find((a) => a.code === 'hapi');
 
     (['sp500', 'nasdaq'] as const).forEach((assetKey) => {
-      const assetLabel = assetKey === 'sp500' ? 'S&P 500 (VOO)' : 'NASDAQ-100 (QQQ)';
-      const ticker = assetKey === 'sp500' ? 'VOO' : 'QQQ';
+      const assetLabel = assetKey === 'sp500' ? 'S&P 500 (VOO)' : 'NASDAQ-100 (QQQM)';
+      const ticker = assetKey === 'sp500' ? 'VOO' : 'QQQM';
       const returnPct =
         assetKey === 'sp500'
-          ? (hapiAcc?.metadata?.sp500_return ?? 0.7)
-          : (hapiAcc?.metadata?.nasdaq_return ?? 146.0);
+          ? (hapiAcc?.metadata?.sp500_return ?? 0.0)
+          : (hapiAcc?.metadata?.nasdaq_return ?? 0.0);
 
       const assetTxs = transactions
         .filter((t) => {
@@ -435,35 +438,85 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
     return map;
   }, [transactions, accounts]);
 
-  // Resumen del activo filtrado (S&P 500 o NASDAQ-100)
+  // Resumen del activo filtrado (S&P 500, NASDAQ-100 o Total Acciones)
   const stockSummary = useMemo(() => {
-    if (filterAccount !== 'sp500' && filterAccount !== 'nasdaq') return null;
+    if (filterAccount !== 'sp500' && filterAccount !== 'nasdaq' && filterAccount !== 'all_stocks') return null;
     const isSp = filterAccount === 'sp500';
-    const assetKey = isSp ? 'sp500' : 'nasdaq';
-    const ticker = isSp ? 'VOO' : 'QQQ';
-    const name = isSp ? 'Vanguard S&P 500 ETF' : 'Invesco QQQ (NASDAQ-100)';
+    const isAll = filterAccount === 'all_stocks';
     const hapiAcc = accounts.find((a) => a.code === 'hapi');
+
+    if (isAll) {
+      const spTxs = Object.values(stockLedgers).filter((s) => s.asset === 'sp500');
+      const nasdaqTxs = Object.values(stockLedgers).filter((s) => s.asset === 'nasdaq');
+      const lastSp = spTxs[spTxs.length - 1];
+      const lastNas = nasdaqTxs[nasdaqTxs.length - 1];
+
+      const spInvested = lastSp ? lastSp.runningInvested : (hapiAcc?.metadata?.sp500_balance || 853.08);
+      const nasInvested = lastNas ? lastNas.runningInvested : (hapiAcc?.metadata?.nasdaq_balance || 366.11);
+      const totalInvested = Math.round((spInvested + nasInvested) * 100) / 100;
+
+      const spShares = lastSp ? lastSp.runningShares : 1.2130;
+      const nasShares = lastNas ? lastNas.runningShares : 1.2529;
+
+      const spLivePrice = marketPrices.SP500?.price || 702.56;
+      const nasLivePrice = marketPrices.Nasdaq?.price || 294.39;
+
+      const spVal = Math.round(spShares * spLivePrice * 100) / 100;
+      const nasVal = Math.round(nasShares * nasLivePrice * 100) / 100;
+      const currentVal = Math.round((spVal + nasVal) * 100) / 100;
+
+      const gainLoss = Math.round((currentVal - totalInvested) * 100) / 100;
+      const returnPct = totalInvested > 0 ? Math.round(((currentVal - totalInvested) / totalInvested) * 1000) / 10 : 0;
+
+      return {
+        isSp: false,
+        isAll: true,
+        assetKey: 'all_stocks' as const,
+        ticker: 'VOO + QQQM',
+        name: 'Portafolio Global de Acciones (VOO + QQQM)',
+        totalInvested,
+        totalShares: spShares + nasShares,
+        sharesDisplay: `${spShares.toFixed(2)} VOO + ${nasShares.toFixed(2)} QQQM`,
+        avgCost: 0,
+        currentVal,
+        gainLoss,
+        returnPct,
+        livePrice: 0,
+        liveChange: 0,
+      };
+    }
+
+    const assetKey = isSp ? 'sp500' : 'nasdaq';
+    const ticker = isSp ? 'VOO' : 'QQQM';
+    const name = isSp ? 'Vanguard S&P 500 ETF' : 'Invesco NASDAQ-100 ETF (QQQM)';
 
     const txsInAsset = Object.values(stockLedgers).filter((s) => s.asset === assetKey);
     const lastItem = txsInAsset[txsInAsset.length - 1];
 
     const totalInvested = lastItem ? lastItem.runningInvested : (isSp ? (hapiAcc?.metadata?.sp500_balance || 853.08) : (hapiAcc?.metadata?.nasdaq_balance || 366.11));
     const totalShares = lastItem ? lastItem.runningShares : (isSp ? 1.2130 : 1.2529);
-    const returnPct = isSp ? (hapiAcc?.metadata?.sp500_return ?? 0.7) : (hapiAcc?.metadata?.nasdaq_return ?? 146.0);
+    const returnPctFallback = isSp ? (hapiAcc?.metadata?.sp500_return ?? 0.0) : (hapiAcc?.metadata?.nasdaq_return ?? 0.0);
     const avgCost = totalShares > 0 ? Math.round((totalInvested / totalShares) * 100) / 100 : 0;
-    const currentVal = Math.round(totalInvested * (1 + returnPct / 100) * 100) / 100;
-    const gainLoss = Math.round((currentVal - totalInvested) * 100) / 100;
 
     const livePrice = isSp ? marketPrices.SP500?.price : marketPrices.Nasdaq?.price;
     const liveChange = isSp ? marketPrices.SP500?.change : marketPrices.Nasdaq?.change;
 
+    const currentVal =
+      livePrice && totalShares > 0
+        ? Math.round(totalShares * livePrice * 100) / 100
+        : Math.round(totalInvested * (1 + returnPctFallback / 100) * 100) / 100;
+    const gainLoss = Math.round((currentVal - totalInvested) * 100) / 100;
+    const returnPct = totalInvested > 0 ? Math.round(((currentVal - totalInvested) / totalInvested) * 1000) / 10 : returnPctFallback;
+
     return {
       isSp,
+      isAll: false,
       assetKey,
       ticker,
       name,
       totalInvested,
       totalShares,
+      sharesDisplay: `${totalShares.toFixed(4)} acc`,
       avgCost,
       currentVal,
       gainLoss,
@@ -534,11 +587,19 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
         (tx.metadata?.investment_asset === 'sp500' || tx.note?.toLowerCase().includes('s&p 500') || tx.note?.toLowerCase().includes('voo'))
       );
     } else if (filterAccount === 'nasdaq') {
-      // En NASDAQ-100 (QQQ): muestra únicamente las compras y entradas de acciones del fondo (ej. +$60.59, +$305.52)
+      // En NASDAQ-100 (QQQM): muestra únicamente las compras y entradas de acciones del fondo (ej. +$60.59, +$305.52)
       // Excluye las salidas de efectivo de Hapi ('Inversión en...') para no confundir con ventas
       matchesAccount = !!(
         (tx.note?.toLowerCase().startsWith('compra') || tx.note?.toLowerCase().startsWith('venta') || tx.metadata?.shares !== undefined) &&
         (tx.metadata?.investment_asset === 'nasdaq' || tx.note?.toLowerCase().includes('nasdaq') || tx.note?.toLowerCase().includes('qqq'))
+      );
+    } else if (filterAccount === 'all_stocks') {
+      // En Total Acciones (VOO + QQQM): muestra todas las compras de acciones físicas de ambos fondos
+      matchesAccount = !!(
+        (tx.note?.toLowerCase().startsWith('compra') || tx.note?.toLowerCase().startsWith('venta') || tx.metadata?.shares !== undefined) &&
+        (tx.metadata?.investment_asset === 'sp500' || tx.metadata?.investment_asset === 'nasdaq' ||
+         tx.note?.toLowerCase().includes('s&p 500') || tx.note?.toLowerCase().includes('voo') ||
+         tx.note?.toLowerCase().includes('nasdaq') || tx.note?.toLowerCase().includes('qqq'))
       );
     } else if (hapiAccount && filterAccount === hapiAccount.id) {
       // En Hapi (Broker - Saldo Efectivo): muestra los 9 movimientos de flujo de caja del broker (transferencias, comisiones, pérdidas y salidas para inversión)
@@ -824,7 +885,7 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
                             {filterAccount === 'sp500' && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
                           </button>
 
-                          {/* NASDAQ-100 (QQQ) */}
+                          {/* NASDAQ-100 (QQQM) */}
                           <button
                             type="button"
                             onClick={() => {
@@ -841,9 +902,31 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <TrendingUp className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                              <span className="truncate">📈 NASDAQ-100 (QQQ)</span>
+                              <span className="truncate">📈 NASDAQ-100 (QQQM)</span>
                             </div>
                             {filterAccount === 'nasdaq' && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
+                          </button>
+
+                          {/* Total Acciones (VOO + QQQM) */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFilterAccount('all_stocks');
+                              setIsAccountDropdownOpen(false);
+                              setCurrentPage(1);
+                              if (onSelectAccountFilter) onSelectAccountFilter('all_stocks');
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              filterAccount === 'all_stocks'
+                                ? 'bg-indigo-600 text-white shadow-sm'
+                                : 'hover:bg-white/10 text-indigo-300 hover:text-white'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <TrendingUp className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                              <span className="truncate">📊 Total Acciones (VOO + QQQM)</span>
+                            </div>
+                            {filterAccount === 'all_stocks' && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
                           </button>
                         </React.Fragment>
                       );
@@ -886,7 +969,7 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
         </div>
       </div>
 
-      {/* Banner de Resumen de Activo de Inversión (S&P 500 / NASDAQ-100) */}
+      {/* Banner de Resumen de Activo de Inversión (S&P 500 / NASDAQ-100 / Total Acciones) */}
       {stockSummary && (
         <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-linear-to-r from-purple-950/40 via-indigo-950/30 to-cyan-950/30 border border-purple-500/30 shadow-xl relative overflow-hidden backdrop-blur-md">
           <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -919,22 +1002,22 @@ export function TransactionHistory({ initialAccountFilter, onSelectAccountFilter
 
               <div className="bg-black/35 px-3 py-2 rounded-xl border border-purple-500/30">
                 <div className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Tenencia Total</div>
-                <div className="text-sm sm:text-base font-black text-purple-300">{stockSummary.totalShares.toFixed(4)} acc</div>
+                <div className="text-sm sm:text-base font-black text-purple-300">{stockSummary.sharesDisplay || `${stockSummary.totalShares} acc`}</div>
               </div>
 
               <div className="bg-black/35 px-3 py-2 rounded-xl border border-white/10">
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Precio Promedio</div>
-                <div className="text-sm sm:text-base font-black text-slate-200">${stockSummary.avgCost.toFixed(2)}</div>
+                <div className="text-sm sm:text-base font-black text-slate-200">{stockSummary.avgCost > 0 ? `$${stockSummary.avgCost.toFixed(2)}` : 'Múltiple'}</div>
               </div>
 
-              <div className="bg-black/35 px-3 py-2 rounded-xl border border-emerald-500/30">
-                <div className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider flex items-center justify-between gap-1">
+              <div className={`bg-black/35 px-3 py-2 rounded-xl border ${stockSummary.gainLoss < 0 ? 'border-rose-500/30' : 'border-emerald-500/30'}`}>
+                <div className={`text-[10px] ${stockSummary.gainLoss < 0 ? 'text-rose-300' : 'text-emerald-300'} font-bold uppercase tracking-wider flex items-center justify-between gap-1`}>
                   <span>Valor Actual</span>
-                  <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/25 text-emerald-200 font-black">
-                    +{stockSummary.returnPct}%
+                  <span className={`text-[9px] px-1 py-0.2 rounded font-black ${stockSummary.returnPct < 0 ? 'bg-rose-500/25 text-rose-200' : 'bg-emerald-500/25 text-emerald-200'}`}>
+                    {stockSummary.returnPct > 0 ? `+${stockSummary.returnPct}%` : `${stockSummary.returnPct}%`}
                   </span>
                 </div>
-                <div className="text-sm sm:text-base font-black text-emerald-400">{formatCurrency(stockSummary.currentVal)}</div>
+                <div className={`text-sm sm:text-base font-black ${stockSummary.gainLoss < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{formatCurrency(stockSummary.currentVal)}</div>
               </div>
             </div>
           </div>

@@ -134,6 +134,10 @@ export interface DebtMovementProcessed {
   is_settlement: boolean;
   previousBalance: number;
   newBalance: number;
+  accountId?: string | null;
+  accountName?: string | null;
+  accountIconUrl?: string | null;
+  delta?: number;
 }
 
 export interface DebtCycle {
@@ -161,14 +165,41 @@ export interface DebtCyclesSummary {
  * Los movimientos dentro de cada ciclo se devuelven en orden cronológico descendente (más reciente arriba),
  * pero con el balance anterior correctamente calculado cronológicamente.
  */
-export function processDebtCycles(rawMovements: DebtPayment[]): DebtCyclesSummary {
+export interface UnifiedRawMovement {
+  id: string;
+  amount: number;
+  type: string;
+  note?: string | null;
+  date: string;
+  created_at?: string;
+  debtType?: 'me_deben' | 'debo';
+  originalTs?: number;
+  accountId?: string | null;
+  accountName?: string | null;
+  accountIconUrl?: string | null;
+}
+
+/**
+ * Procesa todos los movimientos de una PERSONA (tanto lo que le presto como lo que me presta)
+ * en un único flujo cronológico de saldo neto (Running Net Balance) y ciclos inteligentes:
+ * - Saldo > 0: La persona me debe dinero (A mi favor).
+ * - Saldo < 0: Yo le debo dinero a la persona (En mi contra).
+ * - Saldo = $0.00: Saldado / Al día. El ciclo se cierra y se inicia uno nuevo cuando vuelva a haber movimiento.
+ */
+export function processUnifiedPersonDebtCycles(rawMovements: UnifiedRawMovement[]): DebtCyclesSummary {
   if (!rawMovements || rawMovements.length === 0) {
     return { cycles: [], allMovements: [], currentTotalBalance: 0 };
   }
 
-  // Preservar orden cronológico ascendente exacto
+  // Orden cronológico ascendente (más antiguo primero)
   const indexed = rawMovements.map((m, idx) => ({ ...m, _origIndex: idx }));
   const sortedAsc = indexed.sort((a, b) => {
+    const dayA = a.date.slice(0, 10);
+    const dayB = b.date.slice(0, 10);
+    if (dayA !== dayB) return dayA.localeCompare(dayB);
+    if (a.originalTs && b.originalTs && a.originalTs !== b.originalTs) {
+      return a.originalTs - b.originalTs;
+    }
     const timeA = new Date(a.date).getTime();
     const timeB = new Date(b.date).getTime();
     if (timeA !== timeB) return timeA - timeB;
@@ -177,9 +208,7 @@ export function processDebtCycles(rawMovements: DebtPayment[]): DebtCyclesSummar
       const createB = new Date(b.created_at).getTime();
       if (createA !== createB) return createA - createB;
     }
-    // Si la lista de entrada venía en orden descendente (más reciente primero),
-    // el de índice mayor es cronológicamente más antiguo
-    return b._origIndex - a._origIndex;
+    return a._origIndex - b._origIndex;
   });
 
   const cycles: DebtCycle[] = [];
@@ -193,45 +222,79 @@ export function processDebtCycles(rawMovements: DebtPayment[]): DebtCyclesSummar
   for (let i = 0; i < sortedAsc.length; i++) {
     const mov = sortedAsc[i];
     const previousBalance = runningBalance;
-    const rawType = (mov.type as string) || '';
-    const isCargo =
-      rawType === 'cargo' ||
-      rawType === 'loan_out' ||
-      rawType === 'debt_payment' ||
-      (Number(mov.amount) > 0 && !mov.is_settlement && rawType !== 'abono' && rawType !== 'loan_payment' && rawType !== 'debt_in');
-    const amt = Math.abs(Number(mov.amount));
+    const amt = Math.abs(Number(mov.amount)) || 0;
+    const rawType = (mov.type || '').toLowerCase();
+    const isDeboDebt = mov.debtType === 'debo';
 
-    if (isCargo) {
-      runningBalance += amt;
-      totalBorrowed += amt;
+    let delta = 0;
+    let actionLabel = 'Movimiento';
+
+    if (rawType === 'loan_out') {
+      // Yo le presté dinero -> Aumenta lo que me debe (+)
+      delta = +amt;
+      actionLabel = 'Préstamo realizado';
+    } else if (rawType === 'debt_service_in') {
+      // Consumo o servicio por cobrar (pizza, juego de steam, etc.) -> Aumenta lo que me debe (+)
+      delta = +amt;
+      actionLabel = 'Consumo / Servicio por cobrar';
+    } else if (rawType === 'loan_payment') {
+      // Él me pagó -> Reduce lo que me debe (-)
+      delta = -amt;
+      actionLabel = 'Cobro recibido';
+    } else if (rawType === 'debt_in') {
+      // Él me prestó / Yo asumí deuda (galletas, comida, etc.) -> Aumenta lo que yo le debo (-)
+      delta = -amt;
+      actionLabel = 'Deuda asumida (Me prestó)';
+    } else if (rawType === 'debt_payment') {
+      // Yo le pagué a él lo que le debía -> Reduce lo que le debo (+)
+      delta = +amt;
+      actionLabel = 'Pago de deuda realizado';
+    } else if (isDeboDebt) {
+      // Viene de registro de deuda 'debo'
+      if (rawType === 'cargo') {
+        delta = -amt;
+        actionLabel = 'Deuda asumida (Me prestó)';
+      } else {
+        delta = +amt;
+        actionLabel = 'Pago de deuda realizado';
+      }
     } else {
-      runningBalance -= amt;
-      totalPaid += amt;
+      // Viene de registro de deuda 'me_deben'
+      if (rawType === 'cargo') {
+        delta = +amt;
+        actionLabel = 'Préstamo realizado';
+      } else {
+        delta = -amt;
+        actionLabel = 'Cobro recibido';
+      }
     }
-    runningBalance = Math.round(runningBalance * 100) / 100;
 
-    // Solo se considera saldo saldado si llega exactamente a $0.00
+    runningBalance = Math.round((runningBalance + delta) * 100) / 100;
     const isSettlement = Math.abs(runningBalance) < 0.005;
+
+    if (delta > 0) totalBorrowed += amt;
+    else totalPaid += amt;
 
     const processedMovement: DebtMovementProcessed = {
       id: mov.id,
       amount: amt,
-      type: isCargo ? 'cargo' : 'abono',
+      type: delta > 0 ? 'cargo' : 'abono',
       rawType: mov.type,
-      note: mov.note,
+      note: mov.note ?? null,
       date: mov.date,
       is_settlement: isSettlement,
       previousBalance: Math.round(previousBalance * 100) / 100,
       newBalance: runningBalance,
+      accountId: mov.accountId ?? null,
+      accountName: mov.accountName ?? null,
+      accountIconUrl: mov.accountIconUrl ?? null,
+      delta,
     };
 
     currentMovements.push(processedMovement);
     allMovements.push(processedMovement);
 
-    // REGLA CRÍTICA:
-    // El ciclo ÚNICAMENTE se cierra cuando el saldo acumulado llega a exactamente $0.00.
-    // Si el saldo está en negativo (le debo dinero), el ciclo NO se cierra,
-    // continúa abierto hasta que se salde y vuelva a 0.00.
+    // Si el balance acumulado llega a $0.00 y no es el último movimiento, cerramos ciclo saldado
     if (isSettlement && i < sortedAsc.length - 1) {
       cycles.push({
         cycleIndex,
@@ -252,7 +315,7 @@ export function processDebtCycles(rawMovements: DebtPayment[]): DebtCyclesSummar
     }
   }
 
-  // Ciclo activo actual (el más reciente)
+  // Ciclo activo actual
   if (currentMovements.length > 0) {
     const isSettled = Math.abs(runningBalance) < 0.005;
     cycles.push({

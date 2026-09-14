@@ -77,11 +77,11 @@ export function ProjectionView() {
 
     const computeAsset = (assetKey: 'sp500' | 'nasdaq') => {
       const isSp = assetKey === 'sp500';
-      const ticker = isSp ? 'VOO' : 'QQQ';
-      const name = isSp ? 'S&P 500 (VOO)' : 'NASDAQ-100 (QQQ)';
+      const ticker = isSp ? 'VOO' : 'QQQM';
+      const name = isSp ? 'S&P 500 (VOO)' : 'NASDAQ-100 (QQQM)';
       const returnPctDefault = isSp
-        ? (hapiAcc?.metadata?.sp500_return ?? 0.7)
-        : (hapiAcc?.metadata?.nasdaq_return ?? 146.0);
+        ? (hapiAcc?.metadata?.sp500_return ?? 0.0)
+        : (hapiAcc?.metadata?.nasdaq_return ?? 0.0);
 
       const assetTxs = transactions
         .filter((t) => {
@@ -132,14 +132,19 @@ export function ProjectionView() {
           : 1.2529;
 
       const avgCost = totalShares > 0 ? Math.round((totalInvested / totalShares) * 100) / 100 : 0;
-      const currentVal = Math.round(totalInvested * (1 + returnPctDefault / 100) * 100) / 100;
+      const livePrice = isSp ? marketPrices.SP500?.price : marketPrices.Nasdaq?.price;
+      const liveChange = isSp ? marketPrices.SP500?.change : marketPrices.Nasdaq?.change;
+
+      // Calcular valor actual con precio en vivo si existe; fallback al cálculo con rendimiento base
+      const currentVal =
+        livePrice && totalShares > 0
+          ? Math.round(totalShares * livePrice * 100) / 100
+          : Math.round(totalInvested * (1 + returnPctDefault / 100) * 100) / 100;
+
       const gainLossPct =
         totalInvested > 0
           ? Math.round(((currentVal - totalInvested) / totalInvested) * 1000) / 10
           : returnPctDefault;
-
-      const livePrice = isSp ? marketPrices.SP500?.price : marketPrices.Nasdaq?.price;
-      const liveChange = isSp ? marketPrices.SP500?.change : marketPrices.Nasdaq?.change;
 
       return {
         assetKey,

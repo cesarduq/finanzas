@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Scale, TrendingUp, HandCoins } from 'lucide-react';
+import { Scale, TrendingUp, TrendingDown, HandCoins } from 'lucide-react';
 import { formatCurrency, formatPercentage } from '../../utils/formatters';
 
 export interface BankCardProps {
@@ -16,12 +16,27 @@ export interface BankCardProps {
     nasdaq_balance?: number;
     sp500_return?: number;
     nasdaq_return?: number;
+    sp500_gain_loss?: number;
+    nasdaq_gain_loss?: number;
+    total_balance?: number;
+    total_gain_loss?: number;
+    total_return?: number;
     [key: string]: any;
   };
   onClick?: () => void;
-  onSelectSubAsset?: (asset: 'sp500' | 'nasdaq') => void;
+  onSelectSubAsset?: (asset: 'sp500' | 'nasdaq' | 'all_stocks') => void;
   className?: string;
   isSelected?: boolean;
+}
+
+function formatGainLossBadge(balance?: number, gainLoss?: number, returnPct?: number): string {
+  const pct = returnPct ?? 0;
+  const gl = gainLoss !== undefined ? gainLoss : balance !== undefined ? Math.round(((balance * pct) / 100) * 100) / 100 : 0;
+  const glSign = gl > 0 ? '+' : gl < 0 ? '-' : '';
+  const glFormatted = `${glSign}$${Math.abs(gl).toFixed(2)}`;
+  const pctSign = pct > 0 ? '+' : '';
+  const pctFormatted = `(${pctSign}${pct.toFixed(1)}%)`;
+  return `${glFormatted} ${pctFormatted}`;
 }
 
 interface BrandPalette {
@@ -223,10 +238,11 @@ export function BankCard({
             </div>
           </div>
 
-          {/* Lado Derecho: Nuevo diseño de micro-widgets para S&P 500 y NASDAQ + Logo */}
-          <div className="flex items-center gap-2.5 my-auto">
+          {/* Lado Derecho: Micro-widgets para S&P 500, NASDAQ y TOTAL + Logo */}
+          <div className="flex items-center gap-2 sm:gap-2.5 my-auto">
             {metadata && (
               <div className="flex flex-col gap-1 text-[10px]">
+                {/* S&P 500 */}
                 {metadata.sp500_balance !== undefined && (
                   <div
                     onClick={(e) => {
@@ -235,17 +251,21 @@ export function BankCard({
                         onSelectSubAsset('sp500');
                       }
                     }}
-                    title="Filtrar movimientos de S&P 500 (VOO)"
-                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-black/35 hover:bg-black/60 backdrop-blur-md border border-white/10 hover:border-emerald-400/50 shadow-sm transition-all hover:scale-105 cursor-pointer"
+                    title={`S&P 500 (VOO) — Invertido: ${formatCurrency(metadata.sp500_balance)} | Rendimiento: ${formatGainLossBadge(metadata.sp500_balance, metadata.sp500_gain_loss, metadata.sp500_return)}`}
+                    className="flex items-center justify-between gap-1.5 px-2 py-0.5 rounded-lg bg-black/35 hover:bg-black/60 backdrop-blur-md border border-white/10 hover:border-emerald-400/50 shadow-sm transition-all hover:scale-[1.02] cursor-pointer"
                   >
-                    <span className="text-slate-300 font-semibold text-[9px] uppercase tracking-wider">S&P 500</span>
-                    <span className="font-bold text-white text-[10px]">{formatCurrency(metadata.sp500_balance)}</span>
-                    <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/20 px-1 py-0.2 rounded ml-0.5 flex items-center gap-0.5">
-                      <TrendingUp className="w-2.5 h-2.5" />
-                      {formatPercentage(metadata.sp500_return || 0.7)}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-300 font-semibold text-[9px] uppercase tracking-wider">S&P 500</span>
+                      <span className="font-bold text-white text-[10px]">{formatCurrency(metadata.sp500_balance)}</span>
+                    </div>
+                    <span className={`text-[9px] font-bold px-1 py-0.2 rounded ml-1 flex items-center gap-0.5 ${(metadata.sp500_gain_loss ?? metadata.sp500_return ?? 0) < 0 ? 'text-rose-400 bg-rose-500/20' : 'text-emerald-400 bg-emerald-500/20'}`}>
+                      {(metadata.sp500_gain_loss ?? metadata.sp500_return ?? 0) < 0 ? <TrendingDown className="w-2.5 h-2.5 shrink-0" /> : <TrendingUp className="w-2.5 h-2.5 shrink-0" />}
+                      <span>{formatGainLossBadge(metadata.sp500_balance, metadata.sp500_gain_loss, metadata.sp500_return)}</span>
                     </span>
                   </div>
                 )}
+
+                {/* NASDAQ */}
                 {metadata.nasdaq_balance !== undefined && (
                   <div
                     onClick={(e) => {
@@ -254,22 +274,47 @@ export function BankCard({
                         onSelectSubAsset('nasdaq');
                       }
                     }}
-                    title="Filtrar movimientos de NASDAQ-100 (QQQ)"
-                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-black/35 hover:bg-black/60 backdrop-blur-md border border-white/10 hover:border-cyan-400/50 shadow-sm transition-all hover:scale-105 cursor-pointer"
+                    title={`NASDAQ-100 (QQQM) — Invertido: ${formatCurrency(metadata.nasdaq_balance)} | Rendimiento: ${formatGainLossBadge(metadata.nasdaq_balance, metadata.nasdaq_gain_loss, metadata.nasdaq_return)}`}
+                    className="flex items-center justify-between gap-1.5 px-2 py-0.5 rounded-lg bg-black/35 hover:bg-black/60 backdrop-blur-md border border-white/10 hover:border-cyan-400/50 shadow-sm transition-all hover:scale-[1.02] cursor-pointer"
                   >
-                    <span className="text-slate-300 font-semibold text-[9px] uppercase tracking-wider">NASDAQ</span>
-                    <span className="font-bold text-white text-[10px]">{formatCurrency(metadata.nasdaq_balance)}</span>
-                    <span className="text-[9px] font-bold text-cyan-400 bg-cyan-500/20 px-1 py-0.2 rounded ml-0.5 flex items-center gap-0.5">
-                      <TrendingUp className="w-2.5 h-2.5" />
-                      {formatPercentage(metadata.nasdaq_return || 146.0)}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-300 font-semibold text-[9px] uppercase tracking-wider">NASDAQ</span>
+                      <span className="font-bold text-white text-[10px]">{formatCurrency(metadata.nasdaq_balance)}</span>
+                    </div>
+                    <span className={`text-[9px] font-bold px-1 py-0.2 rounded ml-1 flex items-center gap-0.5 ${(metadata.nasdaq_gain_loss ?? metadata.nasdaq_return ?? 0) < 0 ? 'text-rose-400 bg-rose-500/20' : 'text-cyan-400 bg-cyan-500/20'}`}>
+                      {(metadata.nasdaq_gain_loss ?? metadata.nasdaq_return ?? 0) < 0 ? <TrendingDown className="w-2.5 h-2.5 shrink-0" /> : <TrendingUp className="w-2.5 h-2.5 shrink-0" />}
+                      <span>{formatGainLossBadge(metadata.nasdaq_balance, metadata.nasdaq_gain_loss, metadata.nasdaq_return)}</span>
+                    </span>
+                  </div>
+                )}
+
+                {/* TOTAL */}
+                {metadata.total_balance !== undefined && (
+                  <div
+                    onClick={(e) => {
+                      if (onSelectSubAsset) {
+                        e.stopPropagation();
+                        onSelectSubAsset('all_stocks');
+                      }
+                    }}
+                    title={`Total Portafolio Acciones — Invertido: ${formatCurrency(metadata.total_balance)} | Rendimiento: ${formatGainLossBadge(metadata.total_balance, metadata.total_gain_loss, metadata.total_return)}`}
+                    className="flex items-center justify-between gap-1.5 px-2 py-0.5 rounded-lg bg-black/35 hover:bg-black/60 backdrop-blur-md border border-white/10 hover:border-purple-400/50 shadow-sm transition-all hover:scale-[1.02] cursor-pointer"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-300 font-semibold text-[9px] uppercase tracking-wider">TOTAL</span>
+                      <span className="font-bold text-white text-[10px]">{formatCurrency(metadata.total_balance)}</span>
+                    </div>
+                    <span className={`text-[9px] font-bold px-1 py-0.2 rounded ml-1 flex items-center gap-0.5 ${(metadata.total_gain_loss ?? metadata.total_return ?? 0) < 0 ? 'text-rose-400 bg-rose-500/20' : 'text-purple-300 bg-purple-500/20'}`}>
+                      {(metadata.total_gain_loss ?? metadata.total_return ?? 0) < 0 ? <TrendingDown className="w-2.5 h-2.5 shrink-0" /> : <TrendingUp className="w-2.5 h-2.5 shrink-0" />}
+                      <span>{formatGainLossBadge(metadata.total_balance, metadata.total_gain_loss, metadata.total_return)}</span>
                     </span>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Logo de Hapi grande (w-11 h-11) */}
-            <div className="w-11 h-11 shrink-0 flex items-center justify-center">
+            {/* Logo de Hapi grande (w-10 h-10) */}
+            <div className="w-10 h-10 shrink-0 flex items-center justify-center">
               <img src={iconUrl || '/assets/hapi.svg'} alt={title} className="w-full h-full object-contain drop-shadow-md" />
             </div>
           </div>

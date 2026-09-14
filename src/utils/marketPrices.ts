@@ -13,20 +13,21 @@ export interface LiveMarketPrices {
   lastUpdated: string | null;
 }
 
-// Bumped to v4 para limpiar el cache viejo con precios pre-split de QQQ
-const LIVE_PRICES_KEY = 'finanzas_live_prices_v4';
+// Bumped to v5 para asegurar precio actualizado de QQQM (NASDAQ-100 mini ETF)
+const LIVE_PRICES_KEY = 'finanzas_live_prices_v5';
 
-// Precios de referencia actualizados (Sep 2026 — ajustados post-split QQQ)
+// Precios de referencia actualizados (Sep 2026 — VOO y QQQM)
 const DEFAULT_PRICES: LiveMarketPrices = {
-  SP500: { price: 705.00, change: 0.0, ticker: 'VOO', name: 'Vanguard S&P 500 ETF' },
-  Nasdaq: { price: 295.00, change: 0.0, ticker: 'QQQ', name: 'Invesco QQQ (NASDAQ-100)' },
+  SP500: { price: 702.56, change: 0.0, ticker: 'VOO', name: 'Vanguard S&P 500 ETF' },
+  Nasdaq: { price: 294.39, change: 0.0, ticker: 'QQQM', name: 'Invesco NASDAQ-100 ETF' },
   lastUpdated: null,
 };
 
 // Rangos de precio razonables para validar que la API no devuelva datos basura
-const PRICE_SANITY = {
+const PRICE_SANITY: Record<string, { min: number; max: number }> = {
   VOO: { min: 400, max: 1200 },
-  QQQ: { min: 150, max: 700 },
+  QQQ: { min: 150, max: 500 },
+  QQQM: { min: 150, max: 500 },
 };
 
 export function getCachedMarketPrices(): LiveMarketPrices {
@@ -99,7 +100,7 @@ async function fetchTickerPrice(ticker: string): Promise<number | null> {
     },
   ];
 
-  const sanity = ticker === 'VOO' ? PRICE_SANITY.VOO : PRICE_SANITY.QQQ;
+  const sanity = PRICE_SANITY[ticker] || PRICE_SANITY.QQQM;
 
   for (const source of proxies) {
     try {
@@ -122,7 +123,7 @@ export async function fetchLiveMarketPrices(): Promise<LiveMarketPrices> {
   const current = getCachedMarketPrices();
   const symbols: Array<{ key: keyof Omit<LiveMarketPrices, 'lastUpdated'>; ticker: string; fallback: number }> = [
     { key: 'SP500', ticker: 'VOO', fallback: current.SP500.price },
-    { key: 'Nasdaq', ticker: 'QQQ', fallback: current.Nasdaq.price },
+    { key: 'Nasdaq', ticker: 'QQQM', fallback: current.Nasdaq.price },
   ];
 
   const updated = { ...current };
