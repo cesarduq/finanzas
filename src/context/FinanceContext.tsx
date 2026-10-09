@@ -92,6 +92,119 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   });
   const [loading, setLoading] = useState(true);
 
+  // Reconciliación automática de deudas y pagos desfasados tras ediciones previas
+  const reconcileDebtsAndPayments = useCallback(
+    async (
+      currentDebtsList: Debt[],
+      currentPaymentsList: DebtPayment[],
+      currentTxsList: Transaction[],
+      isCloud: boolean
+    ): Promise<{ debts: Debt[]; debtPayments: DebtPayment[] }> => {
+      let debtsChanged = false;
+      let paymentsChanged = false;
+      let reconciledDebts = [...currentDebtsList];
+      let reconciledPayments = [...currentPaymentsList];
+
+      const debtMap = new Map(reconciledDebts.map((d) => [d.id, d]));
+      const debtByNameAndType = new Map<string, Debt>();
+      reconciledDebts.forEach((d) => {
+        debtByNameAndType.set(`${d.person_name.trim().toLowerCase()}_${d.type}`, d);
+      });
+
+      for (let i = 0; i < reconciledPayments.length; i++) {
+        const p = reconciledPayments[i];
+        const linkedDebt = debtMap.get(p.debt_id);
+        if (!linkedDebt) continue;
+
+        const linkedPerson = linkedDebt.person_name.trim().toLowerCase();
+        const pDateDay = p.date ? p.date.slice(0, 10) : '';
+        const pAmt = Math.abs(Number(p.amount)) || 0;
+
+        // ¿Existe transacción para la persona vinculada que coincida?
+        const hasMatchingTxForLinkedPerson = currentTxsList.some((t) => {
+          const tPerson = (t.metadata?.person || '').trim().toLowerCase();
+          const tDateDay = t.date ? t.date.slice(0, 10) : '';
+          const tAmt = Math.abs(Number(t.amount)) || 0;
+          return (
+            tPerson === linkedPerson &&
+            Math.abs(tAmt - pAmt) < 0.005 &&
+            tDateDay === pDateDay
+          );
+        });
+
+        if (hasMatchingTxForLinkedPerson) continue;
+
+        // Buscar si otra persona tiene la transacción exacta (tras ser editada)
+        const candidateTx = currentTxsList.find((t) => {
+          const tPerson = (t.metadata?.person || '').trim().toLowerCase();
+          if (!tPerson || tPerson === linkedPerson) return false;
+          const tDateDay = t.date ? t.date.slice(0, 10) : '';
+          const tAmt = Math.abs(Number(t.amount)) || 0;
+          const isDebtTx = ['loan_out', 'loan_payment', 'debt_in', 'debt_service_in'].includes(t.type);
+          if (!isDebtTx) return false;
+
+          const dateMatches = tDateDay === pDateDay;
+          const amtMatches = Math.abs(tAmt - pAmt) < 0.005;
+          const noteMatches = !p.note || !t.note || p.note.toLowerCase().trim() === t.note.toLowerCase().trim() ||
+            t.note.toLowerCase().includes(p.note.toLowerCase()) || p.note.toLowerCase().includes(t.note.toLowerCase());
+
+          return dateMatches && amtMatches && noteMatches;
+        });
+
+        if (candidateTx && candidateTx.metadata?.person) {
+          const newPersonName = candidateTx.metadata.person.trim();
+          const expectedDebtType = candidateTx.type === 'debt_in' ? 'debo' : 'me_deben';
+          const targetDebt = debtByNameAndType.get(`${newPersonName.toLowerCase()}_${expectedDebtType}`);
+
+          if (targetDebt && targetDebt.id !== p.debt_id) {
+            // Reasignar el debt_id de este pago a targetDebt
+            reconciledPayments[i] = {
+              ...p,
+              debt_id: targetDebt.id,
+            };
+            paymentsChanged = true;
+
+            // Restar de la deuda anterior el importe de este pago
+            const diff = p.type === 'cargo' ? pAmt : -pAmt;
+            const oldDebtBal = Math.round(((Number(linkedDebt.current_balance) || 0) - diff) * 100) / 100;
+            const updatedOldDebt: Debt = {
+              ...linkedDebt,
+              current_balance: oldDebtBal,
+              status: Math.abs(oldDebtBal) < 0.005 ? 'settled' : 'active',
+            };
+            reconciledDebts = reconciledDebts.map((d) => d.id === linkedDebt.id ? updatedOldDebt : d);
+            debtMap.set(linkedDebt.id, updatedOldDebt);
+            debtByNameAndType.set(`${linkedDebt.person_name.trim().toLowerCase()}_${linkedDebt.type}`, updatedOldDebt);
+            debtsChanged = true;
+
+            if (isCloud && supabase && user && !p.id.startsWith('pay-')) {
+              try {
+                await supabase.from('debt_payments').update({ debt_id: targetDebt.id }).eq('id', p.id);
+                if (!linkedDebt.id.startsWith('debt-')) {
+                  await supabase.from('debts').update({
+                    current_balance: oldDebtBal,
+                    status: Math.abs(oldDebtBal) < 0.005 ? 'settled' : 'active',
+                    updated_at: new Date().toISOString(),
+                  }).eq('id', linkedDebt.id);
+                }
+              } catch (e) {
+                console.error('Error sincronizando reconciliación con Supabase:', e);
+              }
+            }
+          }
+        }
+      }
+
+      if (!isCloud) {
+        if (debtsChanged) saveGuestDebts(reconciledDebts);
+        if (paymentsChanged) saveGuestDebtPayments(reconciledPayments);
+      }
+
+      return { debts: reconciledDebts, debtPayments: reconciledPayments };
+    },
+    [user]
+  );
+
   // Cargar datos
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -104,10 +217,17 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       const gPayments = getGuestDebtPayments();
       const gSettings = getGuestSettings();
 
+      const { debts: reconciledDebts, debtPayments: reconciledPayments } = await reconcileDebtsAndPayments(
+        gDebts,
+        gPayments,
+        gTxs,
+        false
+      );
+
       setAccounts(gAccounts);
       setTransactions(gTxs);
-      setDebts(gDebts);
-      setDebtPayments(gPayments);
+      setDebts(reconciledDebts);
+      setDebtPayments(reconciledPayments);
       setInvestmentSettings(gSettings);
       setLoading(false);
       return;
@@ -123,17 +243,32 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         supabase.from('investment_settings').select('*').eq('user_id', user.id).maybeSingle(),
       ]);
 
+      let debtsData = debtsRes.data || [];
+      let payData = payRes.data || [];
+      const txData = txRes.data || [];
+
+      if (debtsData.length > 0 && payData.length > 0 && txData.length > 0) {
+        const { debts: reconciledDebts, debtPayments: reconciledPayments } = await reconcileDebtsAndPayments(
+          debtsData,
+          payData,
+          txData,
+          true
+        );
+        debtsData = reconciledDebts;
+        payData = reconciledPayments;
+      }
+
       if (accRes.data) setAccounts(accRes.data);
       if (txRes.data) setTransactions(txRes.data);
-      if (debtsRes.data) setDebts(debtsRes.data);
-      if (payRes.data) setDebtPayments(payRes.data);
+      setDebts(debtsData);
+      setDebtPayments(payData);
       if (setRes.data) setInvestmentSettings(setRes.data);
     } catch (error) {
       console.error('Error cargando datos de Supabase:', error);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, reconcileDebtsAndPayments]);
 
   useEffect(() => {
     loadData();
@@ -901,6 +1036,17 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     const oldCommission = Number(targetTx.metadata?.commission) || 0;
     const oldNetInvested = Math.max(0, oldAmount - oldCommission);
 
+    const oldPerson = (targetTx.metadata?.person || '').trim();
+    const newPerson = (updatedData.person !== undefined ? updatedData.person : oldPerson).trim();
+    const isOldDebt = ['loan_out', 'loan_payment', 'debt_in', 'debt_service_in'].includes(targetTx.type);
+    const isNewDebt = ['loan_out', 'loan_payment', 'debt_in', 'debt_service_in'].includes(updatedData.type);
+    const oldDebtType = targetTx.type === 'debt_in' ? 'debo' : 'me_deben';
+    const newDebtType = updatedData.type === 'debt_in' ? 'debo' : 'me_deben';
+
+    const oldDebt = (isOldDebt && oldPerson)
+      ? currentDebts.find((d) => d.person_name.toLowerCase() === oldPerson.toLowerCase() && d.type === oldDebtType)
+      : undefined;
+
     // Reversión en cuentas:
     if (['ingreso', 'trade_profit', 'transfer_in'].includes(targetTx.type)) {
       currentAccounts = currentAccounts.map((a) =>
@@ -933,54 +1079,38 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       });
     }
     if (targetTx.type === 'loan_out') {
-      const pName = (targetTx.metadata?.person || '').trim();
       currentAccounts = currentAccounts.map((a) => {
         if (a.id === targetTx.account_id) return { ...a, current_balance: Math.round(((Number(a.current_balance) || 0) + oldAmount) * 100) / 100 };
         if (a.code === 'por_cobrar') return { ...a, current_balance: Math.round(((Number(a.current_balance) || 0) - oldAmount) * 100) / 100 };
         return a;
       });
-      if (pName) {
-        const exDebt = currentDebts.find((d) => d.person_name.toLowerCase() === pName.toLowerCase() && d.type === 'me_deben');
-        if (exDebt) {
-          const bal = Math.round(((Number(exDebt.current_balance) || 0) - oldAmount) * 100) / 100;
-          currentDebts = currentDebts.map((d) => d.id === exDebt.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
-        }
+      if (oldDebt) {
+        const bal = Math.round(((Number(oldDebt.current_balance) || 0) - oldAmount) * 100) / 100;
+        currentDebts = currentDebts.map((d) => d.id === oldDebt.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
       }
     }
     if (targetTx.type === 'loan_payment') {
-      const pName = (targetTx.metadata?.person || '').trim();
       currentAccounts = currentAccounts.map((a) => {
         if (a.id === targetTx.account_id) return { ...a, current_balance: Math.round(((Number(a.current_balance) || 0) - oldAmount) * 100) / 100 };
         if (a.code === 'por_cobrar') return { ...a, current_balance: Math.round(((Number(a.current_balance) || 0) + oldAmount) * 100) / 100 };
         return a;
       });
-      if (pName) {
-        const exDebt = currentDebts.find((d) => d.person_name.toLowerCase() === pName.toLowerCase() && d.type === 'me_deben');
-        if (exDebt) {
-          const bal = Math.round(((Number(exDebt.current_balance) || 0) + oldAmount) * 100) / 100;
-          currentDebts = currentDebts.map((d) => d.id === exDebt.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
-        }
+      if (oldDebt) {
+        const bal = Math.round(((Number(oldDebt.current_balance) || 0) + oldAmount) * 100) / 100;
+        currentDebts = currentDebts.map((d) => d.id === oldDebt.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
       }
     }
     if (targetTx.type === 'debt_in') {
-      const pName = (targetTx.metadata?.person || '').trim();
-      if (pName) {
-        const exDebt = currentDebts.find((d) => d.person_name.toLowerCase() === pName.toLowerCase() && d.type === 'debo');
-        if (exDebt) {
-          const bal = Math.round(((Number(exDebt.current_balance) || 0) - oldAmount) * 100) / 100;
-          currentDebts = currentDebts.map((d) => d.id === exDebt.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
-        }
+      if (oldDebt) {
+        const bal = Math.round(((Number(oldDebt.current_balance) || 0) - oldAmount) * 100) / 100;
+        currentDebts = currentDebts.map((d) => d.id === oldDebt.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
       }
     }
     if (targetTx.type === 'debt_service_in') {
-      const pName = (targetTx.metadata?.person || '').trim();
       currentAccounts = currentAccounts.map((a) => a.code === 'por_cobrar' ? { ...a, current_balance: Math.round(((Number(a.current_balance) || 0) - oldAmount) * 100) / 100 } : a);
-      if (pName) {
-        const exDebt = currentDebts.find((d) => d.person_name.toLowerCase() === pName.toLowerCase() && d.type === 'me_deben');
-        if (exDebt) {
-          const bal = Math.round(((Number(exDebt.current_balance) || 0) - oldAmount) * 100) / 100;
-          currentDebts = currentDebts.map((d) => d.id === exDebt.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
-        }
+      if (oldDebt) {
+        const bal = Math.round(((Number(oldDebt.current_balance) || 0) - oldAmount) * 100) / 100;
+        currentDebts = currentDebts.map((d) => d.id === oldDebt.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
       }
     }
 
@@ -1020,47 +1150,59 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         return a;
       });
     }
+
+    let newDebt = (isNewDebt && newPerson)
+      ? currentDebts.find((d) => d.person_name.toLowerCase() === newPerson.toLowerCase() && d.type === newDebtType)
+      : undefined;
+
+    if (isNewDebt && newPerson && !newDebt) {
+      newDebt = {
+        id: `debt-${Date.now()}`,
+        user_id: user?.id || 'guest',
+        person_name: newPerson,
+        type: newDebtType,
+        initial_amount: newAmount,
+        current_balance: 0,
+        status: 'active',
+        created_at: newDateIso,
+        updated_at: newDateIso,
+      };
+      currentDebts = [newDebt, ...currentDebts];
+    }
+
     if (updatedData.type === 'loan_out') {
-      const pName = (updatedData.person || 'Sin persona').trim();
       currentAccounts = currentAccounts.map((a) => {
         if (a.id === updatedData.account_id) return { ...a, current_balance: Math.round(((Number(a.current_balance) || 0) - newAmount) * 100) / 100 };
         if (a.code === 'por_cobrar') return { ...a, current_balance: Math.round(((Number(a.current_balance) || 0) + newAmount) * 100) / 100 };
         return a;
       });
-      const exDebt = currentDebts.find((d) => d.person_name.toLowerCase() === pName.toLowerCase() && d.type === 'me_deben');
-      if (exDebt) {
-        const bal = Math.round(((Number(exDebt.current_balance) || 0) + newAmount) * 100) / 100;
-        currentDebts = currentDebts.map((d) => d.id === exDebt.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
+      if (newDebt) {
+        const bal = Math.round(((Number(newDebt.current_balance) || 0) + newAmount) * 100) / 100;
+        currentDebts = currentDebts.map((d) => d.id === newDebt!.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
       }
     }
     if (updatedData.type === 'loan_payment') {
-      const pName = (updatedData.person || 'Sin persona').trim();
       currentAccounts = currentAccounts.map((a) => {
         if (a.id === updatedData.account_id) return { ...a, current_balance: Math.round(((Number(a.current_balance) || 0) + newAmount) * 100) / 100 };
         if (a.code === 'por_cobrar') return { ...a, current_balance: Math.round(((Number(a.current_balance) || 0) - newAmount) * 100) / 100 };
         return a;
       });
-      const exDebt = currentDebts.find((d) => d.person_name.toLowerCase() === pName.toLowerCase() && d.type === 'me_deben');
-      if (exDebt) {
-        const bal = Math.round(((Number(exDebt.current_balance) || 0) - newAmount) * 100) / 100;
-        currentDebts = currentDebts.map((d) => d.id === exDebt.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
+      if (newDebt) {
+        const bal = Math.round(((Number(newDebt.current_balance) || 0) - newAmount) * 100) / 100;
+        currentDebts = currentDebts.map((d) => d.id === newDebt!.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
       }
     }
     if (updatedData.type === 'debt_in') {
-      const pName = (updatedData.person || 'Sin persona').trim();
-      const exDebt = currentDebts.find((d) => d.person_name.toLowerCase() === pName.toLowerCase() && d.type === 'debo');
-      if (exDebt) {
-        const bal = Math.round(((Number(exDebt.current_balance) || 0) + newAmount) * 100) / 100;
-        currentDebts = currentDebts.map((d) => d.id === exDebt.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
+      if (newDebt) {
+        const bal = Math.round(((Number(newDebt.current_balance) || 0) + newAmount) * 100) / 100;
+        currentDebts = currentDebts.map((d) => d.id === newDebt!.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
       }
     }
     if (updatedData.type === 'debt_service_in') {
-      const pName = (updatedData.person || 'Sin persona').trim();
       currentAccounts = currentAccounts.map((a) => a.code === 'por_cobrar' ? { ...a, current_balance: Math.round(((Number(a.current_balance) || 0) + newAmount) * 100) / 100 } : a);
-      const exDebt = currentDebts.find((d) => d.person_name.toLowerCase() === pName.toLowerCase() && d.type === 'me_deben');
-      if (exDebt) {
-        const bal = Math.round(((Number(exDebt.current_balance) || 0) + newAmount) * 100) / 100;
-        currentDebts = currentDebts.map((d) => d.id === exDebt.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
+      if (newDebt) {
+        const bal = Math.round(((Number(newDebt.current_balance) || 0) + newAmount) * 100) / 100;
+        currentDebts = currentDebts.map((d) => d.id === newDebt!.id ? { ...d, current_balance: bal, status: Math.abs(bal) < 0.005 ? 'settled' : 'active' } : d);
       }
     }
 
@@ -1085,28 +1227,70 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       metadata: mergedMetadata,
     };
 
+    // Actualizar debtPayments en local si aplica
+    const isCargo = ['loan_out', 'debt_in', 'debt_service_in'].includes(updatedData.type);
+    const payType = isCargo ? 'cargo' : 'abono';
+    let targetPayment: DebtPayment | undefined;
+
+    if (isOldDebt) {
+      targetPayment = currentPayments.find((p) => {
+        const debtMatches = oldDebt ? p.debt_id === oldDebt.id : true;
+        const amtMatches = Math.abs(Number(p.amount) - oldAmount) < 0.005;
+        const dateMatches = p.date?.slice(0, 10) === targetTx.date?.slice(0, 10);
+        const noteMatches = !p.note || !targetTx.note || p.note === targetTx.note;
+        return debtMatches && amtMatches && (dateMatches || noteMatches);
+      });
+    }
+
+    if (isOldDebt && isNewDebt && newDebt) {
+      if (targetPayment) {
+        currentPayments = currentPayments.map((p) =>
+          p.id === targetPayment!.id
+            ? {
+                ...p,
+                debt_id: newDebt!.id,
+                amount: newAmount,
+                type: payType,
+                note: updatedData.note !== undefined ? updatedData.note : p.note,
+                date: newDateIso,
+              }
+            : p
+        );
+      } else {
+        const createdP: DebtPayment = {
+          id: `pay-${Date.now()}`,
+          user_id: user?.id || 'guest',
+          debt_id: newDebt.id,
+          amount: newAmount,
+          type: payType,
+          note: updatedData.note || targetTx.note || '',
+          date: newDateIso,
+          is_settlement: false,
+          created_at: new Date().toISOString(),
+        };
+        currentPayments = [createdP, ...currentPayments];
+      }
+    } else if (isOldDebt && !isNewDebt && targetPayment) {
+      currentPayments = currentPayments.filter((p) => p.id !== targetPayment!.id);
+    } else if (!isOldDebt && isNewDebt && newDebt) {
+      const createdP: DebtPayment = {
+        id: `pay-${Date.now()}`,
+        user_id: user?.id || 'guest',
+        debt_id: newDebt.id,
+        amount: newAmount,
+        type: payType,
+        note: updatedData.note || targetTx.note || '',
+        date: newDateIso,
+        is_settlement: false,
+        created_at: new Date().toISOString(),
+      };
+      currentPayments = [createdP, ...currentPayments];
+    }
+
     setAccounts(currentAccounts);
     setDebts(currentDebts);
     setTransactions((prev) => prev.map((t) => (t.id === id ? updatedTx : t)));
-
-    // Actualizar debtPayments en local si aplica
-    if (['loan_out', 'loan_payment', 'debt_in', 'debt_service_in'].includes(targetTx.type) || ['loan_out', 'loan_payment', 'debt_in', 'debt_service_in'].includes(updatedData.type)) {
-      const isCargo = ['loan_out', 'debt_in', 'debt_service_in'].includes(updatedData.type);
-      const payType = isCargo ? 'cargo' : 'abono';
-      currentPayments = currentPayments.map((p) => {
-        if (p.amount === oldAmount && (p.date === targetTx.date || p.note === targetTx.note)) {
-          return {
-            ...p,
-            amount: newAmount,
-            type: payType,
-            note: updatedData.note !== undefined ? updatedData.note : p.note,
-            date: newDateIso,
-          };
-        }
-        return p;
-      });
-      setDebtPayments(currentPayments);
-    }
+    setDebtPayments(currentPayments);
 
     // MODO INVITADO
     if (!isSupabaseConfigured || !supabase || !user) {
@@ -1164,30 +1348,80 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         await supabase.from('accounts').update({ current_balance: porCobrarAcc.current_balance }).eq('id', porCobrarAcc.id);
       }
 
-      // 3. Sincronizar deudas en Supabase si aplica
-      const affectedPerson = updatedData.person?.trim() || targetTx.metadata?.person?.trim();
-      if (affectedPerson) {
-        const debtType = (updatedData.type === 'debt_in' || targetTx.type === 'debt_in') ? 'debo' : 'me_deben';
-        const targetDebt = currentDebts.find((d) => d.person_name.toLowerCase() === affectedPerson.toLowerCase() && d.type === debtType);
-        if (targetDebt && targetDebt.id && !targetDebt.id.startsWith('debt-')) {
-          await supabase.from('debts').update({
-            current_balance: targetDebt.current_balance,
-            status: targetDebt.status,
-            updated_at: new Date().toISOString(),
-          }).eq('id', targetDebt.id);
+      // 3. Sincronizar deudas y debt_payments en Supabase si aplica
+      if (isOldDebt || isNewDebt) {
+        // a. Revertir y sincronizar deuda anterior en Supabase si cambió de persona o tipo
+        if (isOldDebt && oldDebt && (oldPerson.toLowerCase() !== newPerson.toLowerCase() || oldDebtType !== newDebtType)) {
+          const revertedOldDebt = currentDebts.find((d) => d.id === oldDebt.id);
+          if (revertedOldDebt && !revertedOldDebt.id.startsWith('debt-')) {
+            await supabase.from('debts').update({
+              current_balance: revertedOldDebt.current_balance,
+              status: revertedOldDebt.status,
+              updated_at: new Date().toISOString(),
+            }).eq('id', revertedOldDebt.id);
+          }
+        }
 
-          // Actualizar en debt_payments si existe
-          const isCargo = ['loan_out', 'debt_in', 'debt_service_in'].includes(updatedData.type);
-          const payType = isCargo ? 'cargo' : 'abono';
-          await supabase.from('debt_payments')
-            .update({
+        // b. Sincronizar nueva deuda en Supabase
+        if (isNewDebt && newDebt) {
+          let cloudDebtId = newDebt.id;
+          const freshNewDebt = currentDebts.find((d) => d.id === newDebt!.id);
+          if (newDebt.id.startsWith('debt-')) {
+            const { data: createdCloudDebt } = await supabase.from('debts').insert({
+              user_id: user.id,
+              person_name: newPerson,
+              type: newDebtType,
+              initial_amount: newAmount,
+              current_balance: freshNewDebt ? freshNewDebt.current_balance : newAmount,
+              status: freshNewDebt ? freshNewDebt.status : 'active',
+            }).select().single();
+            if (createdCloudDebt) {
+              cloudDebtId = createdCloudDebt.id;
+            }
+          } else if (freshNewDebt) {
+            await supabase.from('debts').update({
+              current_balance: freshNewDebt.current_balance,
+              status: freshNewDebt.status,
+              updated_at: new Date().toISOString(),
+            }).eq('id', freshNewDebt.id);
+          }
+
+          // c. Sincronizar debt_payments en Supabase
+          if (targetPayment && !targetPayment.id.startsWith('pay-')) {
+            await supabase.from('debt_payments').update({
+              debt_id: cloudDebtId,
+              amount: newAmount,
+              note: updatedData.note !== undefined ? updatedData.note : targetTx.note,
+              date: newDateIso,
+              type: payType,
+            }).eq('id', targetPayment.id);
+          } else if (targetPayment && oldDebt && !oldDebt.id.startsWith('debt-')) {
+            await supabase.from('debt_payments').update({
+              debt_id: cloudDebtId,
               amount: newAmount,
               note: updatedData.note !== undefined ? updatedData.note : targetTx.note,
               date: newDateIso,
               type: payType,
             })
-            .eq('debt_id', targetDebt.id)
+            .eq('debt_id', oldDebt.id)
             .eq('amount', oldAmount);
+          } else if (!targetPayment) {
+            await supabase.from('debt_payments').insert({
+              user_id: user.id,
+              debt_id: cloudDebtId,
+              amount: newAmount,
+              type: payType,
+              note: updatedData.note || targetTx.note || '',
+              date: newDateIso,
+              is_settlement: false,
+            });
+          }
+        } else if (isOldDebt && !isNewDebt && targetPayment) {
+          if (!targetPayment.id.startsWith('pay-')) {
+            await supabase.from('debt_payments').delete().eq('id', targetPayment.id);
+          } else if (oldDebt && !oldDebt.id.startsWith('debt-')) {
+            await supabase.from('debt_payments').delete().eq('debt_id', oldDebt.id).eq('amount', oldAmount);
+          }
         }
       }
 
